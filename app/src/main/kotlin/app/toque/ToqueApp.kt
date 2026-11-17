@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import app.toque.core.i18n.I18n
+import app.toque.core.i18n.tr
 import app.toque.machine.MachineClient
 import app.toque.recipes.RecipeRepo
 import app.toque.ui.MainActivity
@@ -47,7 +48,7 @@ class ToqueApp : Application() {
             }
         }
         log.write("interface", "démarrage")
-        prefs.forgetCookomixAccount()
+        prefs.forgetCookomixAccount() // une seule fois en pratique : ne fait rien si rien n'est enregistré
         TimeSync.start(this, prefs, log)
         resumeInterruptedSyncs()
     }
@@ -57,22 +58,29 @@ class ToqueApp : Application() {
      * elle reprend toute seule, là où elle s'était arrêtée (index enregistré au fil de l'eau).
      */
     private fun resumeInterruptedSyncs() {
-        if (!prefs.lidlSyncPending && !prefs.cookomixSyncPending) return
-        // Une synchro qui fait elle-même tomber l'appli ne doit pas reprendre à chaque démarrage.
-        if (prefs.syncResumes >= MAX_RESUMES) {
-            log.write("synchro", "synchro interrompue $MAX_RESUMES fois de suite : plus de reprise automatique")
-            prefs.lidlSyncPending = false
-            prefs.cookomixSyncPending = false
-            prefs.syncResumes = 0
-            return
+        // Les deux synchros reprennent en même temps, comme elles avaient été lancées ; chacune a
+        // son compteur : une synchro qui fait tomber l'appli ne reprend pas plus de 3 fois de suite.
+        if (prefs.lidlSyncPending) {
+            if (prefs.lidlResumes >= MAX_RESUMES) {
+                prefs.lidlSyncPending = false
+                prefs.lidlResumes = 0
+                prefs.lastSyncResult = tr("Synchronisation interrompue %d fois de suite : relancez-la à la main.", MAX_RESUMES)
+                log.write("synchro", prefs.lastSyncResult)
+            } else {
+                prefs.lidlResumes = prefs.lidlResumes + 1
+                resume("synchro", "toque-reprise-lidl") { app.toque.recipes.OnlineSync(this, prefs, recipes, log).sync() }
+            }
         }
-        prefs.syncResumes = prefs.syncResumes + 1
-        // Les deux synchros reprennent en même temps, comme elles avaient été lancées.
-        if (prefs.lidlSyncPending) resume("synchro", "toque-reprise-lidl") {
-            app.toque.recipes.OnlineSync(this, prefs, recipes, log).sync()
-        }
-        if (prefs.cookomixSyncPending) resume("cookomix", "toque-reprise-cookomix") {
-            app.toque.recipes.CookomixSync(this, prefs, recipes, log).sync()
+        if (prefs.cookomixSyncPending) {
+            if (prefs.cookomixResumes >= MAX_RESUMES) {
+                prefs.cookomixSyncPending = false
+                prefs.cookomixResumes = 0
+                prefs.cookomixLastResult = tr("Synchronisation interrompue %d fois de suite : relancez-la à la main.", MAX_RESUMES)
+                log.write("cookomix", prefs.cookomixLastResult)
+            } else {
+                prefs.cookomixResumes = prefs.cookomixResumes + 1
+                resume("cookomix", "toque-reprise-cookomix") { app.toque.recipes.CookomixSync(this, prefs, recipes, log).sync() }
+            }
         }
     }
 

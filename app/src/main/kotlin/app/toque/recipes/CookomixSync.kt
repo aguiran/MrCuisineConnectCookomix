@@ -198,8 +198,7 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
     private fun save(batch: MutableList<Recipe>, index: Map<String, String>) {
         if (batch.isNotEmpty()) {
             unseen += batch.size
-            // La première synchro dure environ une heure : les recettes apparaissent par paquets
-            // dans la liste au lieu d'attendre la fin.
+            // Les recettes apparaissent dans la liste pendant la synchro au lieu d'attendre la fin.
             // Premier affichage vite (100 recettes), puis tous les 500 : chaque rechargement relit tout
             // le catalogue, ce qui coûte en mémoire et en temps sur la tablette du robot.
             val every = if (shownOnce) REFRESH_EVERY else REFRESH_FIRST
@@ -240,13 +239,19 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
             } catch (e: IOException) {
                 log.write("cookomix", "photo $url : ${e.message}")
                 if (++inARow >= 5) return
+            } catch (e: Exception) {
+                // Image mal formée : on passe à la suivante, la synchro des recettes est déjà faite.
+                log.write("cookomix", "photo $url : $e")
+            } catch (e: OutOfMemoryError) {
+                log.write("cookomix", "photo $url : mémoire insuffisante")
             }
             pause(300)
         }
     }
 
-    private fun text(url: String, headers: Map<String, String> = emptyMap()): String =
-        String(fetcher.download(url, mapOf("Accept-Language" to "fr-FR") + headers, 4 * 1024 * 1024), Charsets.UTF_8)
+    /** Page publique du site (aucune requête ne porte d'identifiant). */
+    private fun text(url: String): String =
+        String(fetcher.download(url, mapOf("Accept-Language" to "fr-FR"), 4 * 1024 * 1024), Charsets.UTF_8)
 
     private fun readIndex(): Map<String, String> = try {
         Json.parse(indexFile.readText()).obj()["recipes"].obj().mapValues { (_, v) -> v?.toString().orEmpty() }
@@ -266,7 +271,7 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
 
     private fun finish(r: LidlSync.Report): LidlSync.Report {
         // Terminée (réussie ou arrêtée sur une erreur) : pas de reprise automatique au démarrage.
-        prefs.syncResumes = 0
+        prefs.cookomixResumes = 0
         prefs.cookomixSyncPending = false
         val stamp = SimpleDateFormat(tr("dd/MM à HH:mm"), I18n.locale).format(Date())
         prefs.cookomixLastSyncMs = System.currentTimeMillis()
@@ -288,7 +293,7 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         private const val INCOMPATIBLE = "incompatible"
         private const val ERROR = "erreur"
         private const val UNREADABLE = "illisible"
-        /** Une page toutes les ~1,2 s : environ 50 minutes pour tout le site la première fois. */
+        /** Pause entre deux pages (plus le téléchargement et la photo) : une heure ou plus la première fois. */
         private const val PAGE_PAUSE_MS = 1_200L
         private const val REFRESH_FIRST = 100
         private const val REFRESH_EVERY = 500

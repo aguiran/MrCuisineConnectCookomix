@@ -180,7 +180,7 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
 
     private fun finish(r: LidlSync.Report): LidlSync.Report {
         // Terminée (réussie ou arrêtée sur une erreur) : pas de reprise automatique au démarrage.
-        prefs.syncResumes = 0
+        prefs.lidlResumes = 0
         prefs.lidlSyncPending = false
         val stamp = SimpleDateFormat(tr("dd/MM à HH:mm"), I18n.locale).format(Date())
         prefs.lastSyncMs = System.currentTimeMillis()

@@ -147,11 +147,18 @@ class Prefs(context: Context) {
             p.edit().putBoolean("cookomixSyncPending", v).commit()
         }
 
-    /** Reprises automatiques consécutives d'une synchro qui ne se termine pas (évite une boucle). */
-    var syncResumes: Int
-        get() = p.getInt("syncResumes", 0)
+    /** Reprises automatiques consécutives de la synchro Lidl qui ne se termine pas (évite une boucle). */
+    var lidlResumes: Int
+        get() = p.getInt("lidlResumes", 0)
         set(v) {
-            p.edit().putInt("syncResumes", v).commit()
+            p.edit().putInt("lidlResumes", v).commit()
+        }
+
+    /** Reprises automatiques consécutives de la synchro Cookomix qui ne se termine pas. */
+    var cookomixResumes: Int
+        get() = p.getInt("cookomixResumes", 0)
+        set(v) {
+            p.edit().putInt("cookomixResumes", v).commit()
         }
 
     var lastSyncMs: Long

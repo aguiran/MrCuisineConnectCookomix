@@ -354,6 +354,7 @@
   "Synchronisation déjà en cours": "Sync already in progress",
   "Synchronisation en cours… (quelques minutes)": "Syncing… (a few minutes)",
   "Synchronisation impossible : %s": "Sync failed: %s",
+  "Synchronisation interrompue %d fois de suite : relancez-la à la main.": "Sync interrupted %d times in a row: start it again by hand.",
   "Synchroniser": "Sync",
   "Synchroniser Cookomix": "Sync Cookomix",
   "Sécurité": "Safety",

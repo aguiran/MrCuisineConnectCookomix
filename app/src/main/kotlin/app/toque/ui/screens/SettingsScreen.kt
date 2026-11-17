@@ -432,7 +432,6 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             val r = CookomixSync(a, a.prefs, a.app.recipes, a.app.log).sync { msg -> view.post { ckxText.text = msg } }
             view.post {
                 ckxBusy = false
-                if (r.ok) a.prefs.cookomixAutoSync = true
                 refreshCookomix()
                 refreshSync()
                 a.toast(r.message, if (r.ok) Ui.OK else Ui.WARN)
