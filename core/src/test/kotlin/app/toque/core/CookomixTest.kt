@@ -85,7 +85,6 @@ class CookomixTest {
         assertTrue(r.steps.none { it.text.replace("(Thermomix :", "").contains("Thermomix", ignoreCase = true) })
         assertTrue(r.steps.any { it.text == "Laisser reposer 10 min." })
         assertTrue(r.steps.any { it.text.contains("panier vapeur") })
-        assertEquals(listOf("autre-recette-thermomix"), Cookomix.recipeSlugs(fixture("cookomix-page.html")))
     }
 
 
@@ -109,14 +108,7 @@ class CookomixTest {
         assertTrue("Adaptée MCC" !in res.recipe!!.tags)
     }
 
-    @Test fun token() {
-        val (ok, _) = Cookomix.parseToken("""{"token":"abc.def.ghi","user_email":"a@example.test","user_nicename":"essai","user_display_name":"Essai"}""")
-        assertNotNull(ok)
-        assertEquals("essai", ok!!.login)
-        val (ko, msg) = Cookomix.parseToken("""{"code":"[jwt_auth] incorrect_password","message":"<strong>Erreur :</strong> mauvais","data":{"status":403}}""")
-        assertNull(ko)
-        assertEquals("mot de passe incorrect", msg)
-        assertEquals("""{"username":"a@example.test","password":"p\"w"}""", Cookomix.tokenBody(" a@example.test ", "p\"w"))
+    @Test fun minutes() {
         assertEquals(30, Cookomix.minutes("PT30M"))
         assertEquals(80, Cookomix.minutes("PT1H20M"))
     }
@@ -176,15 +168,6 @@ class CookomixTest {
         // La doc décrit chaque code.
         val doc = java.io.File("../docs/COOKOMIX-ERREURS.md").readText()
         for (c in codes) assertTrue("$c absent de docs/COOKOMIX-ERREURS.md", doc.contains("| $c |"))
-    }
-
-    @Test fun login() {
-        val ok = Cookomix.parseLogin("""{"token":"t","user_nicename":"essai"}""", 200)
-        assertNotNull(ok.account)
-        assertNull(ok.error)
-        assertEquals(Cookomix.Error.LOGIN_REFUSED, Cookomix.parseLogin("""{"code":"[jwt_auth] incorrect_password","message":"x"}""", 403).error)
-        assertEquals(Cookomix.Error.LOGIN_UNAVAILABLE, Cookomix.parseLogin("<html>404</html>", 404).error)
-        assertEquals(Cookomix.Error.LOGIN_UNAVAILABLE, Cookomix.parseLogin("""{"code":"jwt_auth_bad_config"}""", 500).error)
     }
 
     private fun page(vararg steps: String) =

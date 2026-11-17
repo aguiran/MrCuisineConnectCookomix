@@ -323,9 +323,8 @@ Options de la section : **Inclure les recettes adaptées** (activée par défaut
 recettes adaptées sont retirées à la synchro suivante, sauf celles en favori) et **Synchro Cookomix
 chaque nuit** (désactivée par défaut).
 
-Le compte Cookomix (email ou pseudo + mot de passe) est **facultatif** : il ne sert qu'à importer
-votre carnet de recettes dans les favoris (**Importer mes favoris**, une fois les recettes
-synchronisées). Seul un jeton de connexion est enregistré sur le robot.
+Aucun compte Cookomix n'est nécessaire : mettez les recettes qui vous plaisent dans les favoris de
+Toque (étoile sur une recette).
 
 Si la synchro affiche un code **CKX-01** à **CKX-10** (site en panne, format changé…), les recettes
 déjà enregistrées restent disponibles : voir [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md).

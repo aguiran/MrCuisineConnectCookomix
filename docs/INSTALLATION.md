@@ -315,9 +315,8 @@ In the **Recipes** screen, the **All / Lidl / Cookomix** tabs keep the two sourc
 categories differ) and **"Categories…"** opens the list of all categories.
 
 Section options: **Include adapted recipes** (on by default; when off, adapted recipes are removed
-at the next sync, except favourites) and **Nightly Cookomix sync** (off by default). The Cookomix
-account (email or username + password) is optional: it only imports your cookbook into favourites
-(**Import my favourites**, once recipes are synced); only a sign-in token is stored.
+at the next sync, except favourites) and **Nightly Cookomix sync** (off by default). No Cookomix
+account is needed: put the recipes you like in Toque's favourites (star on a recipe).
 
 Error codes CKX-01 to CKX-10: [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md) (in French); saved recipes
 are never deleted when a sync fails. **The Cookomix version has not run on a robot yet** (only on a

@@ -263,22 +263,9 @@ class Prefs(context: Context) {
             p.edit().putLong("cookomixLastSyncMs", v).commit()
         }
 
-    /** Compte Cookomix : jeton de connexion (le mot de passe n'est jamais enregistré). */
-    var cookomixToken: String
-        get() = p.getString("cookomixToken", "") ?: ""
-        set(v) {
-            p.edit().putString("cookomixToken", v).commit()
-        }
-
-    var cookomixLogin: String
-        get() = p.getString("cookomixLogin", "") ?: ""
-        set(v) {
-            p.edit().putString("cookomixLogin", v).commit()
-        }
-
-    var cookomixName: String
-        get() = p.getString("cookomixName", "") ?: ""
-        set(v) {
-            p.edit().putString("cookomixName", v).commit()
-        }
+    /** Connexion au compte Cookomix retirée (0.7.1) : efface jeton et pseudo d'une version précédente. */
+    fun forgetCookomixAccount() {
+        if (p.contains("cookomixToken") || p.contains("cookomixLogin") || p.contains("cookomixName"))
+            p.edit().remove("cookomixToken").remove("cookomixLogin").remove("cookomixName").commit()
+    }
 }

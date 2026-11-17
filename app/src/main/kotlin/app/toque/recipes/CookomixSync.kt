@@ -1,7 +1,6 @@
 package app.toque.recipes
 
 import android.content.Context
-import app.toque.Http
 import app.toque.Logbook
 import app.toque.Prefs
 import app.toque.core.i18n.I18n
@@ -192,39 +191,6 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         return LidlSync.Report(true, tr("Cookomix : %d compatibles, %d adaptées, %d incompatibles", ok, adapted, ko) + note, keep.size)
     }
 
-    /**
-     * Favoris du carnet de recettes du compte connecté (page publique du membre) : les recettes
-     * déjà importées dans Toque sont ajoutées aux favoris. Renvoie un message à afficher.
-     */
-    fun importFavorites(): LidlSync.Report {
-        val login = prefs.cookomixLogin
-        if (prefs.cookomixToken.isEmpty() || login.isEmpty()) return LidlSync.Report(false, tr("Connectez-vous d'abord à Cookomix"))
-        val html = try {
-            text(Cookomix.memberCookbookUrl(login), Cookomix.authHeader(prefs.cookomixToken))
-        } catch (e: IOException) {
-            return networkFailure(e)
-        }
-        if (!Cookomix.looksLikeCookbook(html)) {
-            val msg = Cookomix.Error.COOKBOOK_UNREADABLE.message()
-            log.write("cookomix", msg)
-            return LidlSync.Report(false, msg)
-        }
-        val slugs = Cookomix.recipeSlugs(html)
-        val index = readIndex()
-        var added = 0
-        for (slug in slugs) {
-            val id = Mark.of(index[slug])?.id?.takeIf { it.isNotEmpty() } ?: continue
-            if (repo.get(id) != null && !repo.isFavorite(id)) {
-                repo.setFavorite(id, true)
-                added++
-            }
-        }
-        val msg = if (slugs.isEmpty()) tr("Aucune recette trouvée dans votre carnet Cookomix")
-        else tr("%d recette(s) du carnet, %d ajoutée(s) aux favoris", slugs.size, added)
-        log.write("cookomix", msg)
-        return LidlSync.Report(slugs.isNotEmpty(), msg, added)
-    }
-
     /** Recettes enregistrées depuis le dernier rechargement de la liste. */
     private var unseen = 0
     private var shownOnce = false
@@ -334,45 +300,5 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         @Volatile var current: String = ""
             private set
 
-        /** Connexion par email (ou pseudo) et mot de passe : seul le jeton est gardé. Renvoie (ok, message). */
-        fun login(prefs: Prefs, log: Logbook, user: String, password: String): Pair<Boolean, String> {
-            if (user.isBlank() || password.isEmpty()) return false to tr("Email et mot de passe requis")
-            val raw = try {
-                Http.postJson(Cookomix.TOKEN_URL, Cookomix.tokenBody(user, password))
-            } catch (e: IOException) {
-                log.write("cookomix", "connexion : réseau : $e")
-                return false to Cookomix.Error.NETWORK.message(e.message ?: e.javaClass.simpleName)
-            }
-            // Diagnostic sans donnée personnelle : réponse du site et forme de la saisie (jamais l'email
-            // ni le mot de passe), pour repérer un espace en trop ou un identifiant mal reconnu.
-            val serverCode = Regex("\"code\"\\s*:\\s*\"([^\"]*)\"").find(raw.body)?.groupValues?.get(1)
-                ?: if (raw.body.contains("\"token\"")) "token" else raw.body.take(60).replace(Regex("\\s+"), " ")
-            log.write("cookomix", "connexion : HTTP ${raw.code}, réponse « $serverCode » ; identifiant de ${user.trim().length} car. " +
-                "(${if (user.contains('@')) "email" else "pseudo"}), mot de passe de ${password.length} car." +
-                if (password != password.trim()) ", avec espace au début ou à la fin" else "")
-            val login = Cookomix.parseLogin(raw.body, raw.code)
-            val account = login.account
-                ?: return false to (login.error ?: Cookomix.Error.LOGIN_UNAVAILABLE).message(login.detail.ifEmpty { tr("réponse %d du serveur", raw.code) })
-            prefs.cookomixToken = account.token
-            prefs.cookomixLogin = account.login
-            prefs.cookomixName = account.displayName.ifEmpty { account.login.ifEmpty { account.email } }
-            return true to tr("Connecté à Cookomix : %s", prefs.cookomixName)
-        }
-
-        /** Le jeton est-il encore accepté par le site ? (false aussi si le site est injoignable) */
-        fun validate(prefs: Prefs): Boolean {
-            if (prefs.cookomixToken.isEmpty()) return false
-            return try {
-                Http.postJson(Cookomix.VALIDATE_URL, "{}", Cookomix.authHeader(prefs.cookomixToken)).code == 200
-            } catch (_: IOException) {
-                false
-            }
-        }
-
-        fun logout(prefs: Prefs) {
-            prefs.cookomixToken = ""
-            prefs.cookomixLogin = ""
-            prefs.cookomixName = ""
-        }
     }
 }

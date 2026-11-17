@@ -44,9 +44,9 @@
 > photos included), then only new or changed recipes are downloaded again. Recipes appear during the
 > sync, with their photo. Options: **Include adapted recipes** (on by default; when off, adapted
 > recipes are removed at the next sync, except favourites) and **Nightly Cookomix sync** (off by
-> default). The **Cookomix account** (email or username + password, optional) imports your cookbook
-> into favourites (**Import my favourites**, after a sync); only a sign-in token is stored, never the
-> password. If the site is down or changes its format, the sync stops with an error code (CKX-01 to
+> default). No Cookomix account is needed: favourites are kept in Toque (star on a recipe). (Signing
+> in to import the Cookomix cookbook was removed in 0.7.1: the site refuses that sign-in to apps and
+> only shows the cookbook to its owner signed in on the site.) If the site is down or changes its format, the sync stops with an error code (CKX-01 to
 > CKX-10, in [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md), in French) and never deletes saved
 > recipes. Recipes stay the property of Cookomix and their authors: each robot downloads them for
 > its owner's personal use and this repository does not redistribute them.

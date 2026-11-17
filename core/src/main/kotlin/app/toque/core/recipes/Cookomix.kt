@@ -30,8 +30,6 @@ import app.toque.core.protocol.Mcc
 object Cookomix {
     const val SITE = "https://www.cookomix.com"
     const val SITEMAP_INDEX = "$SITE/sitemap_index.xml"
-    const val TOKEN_URL = "$SITE/wp-json/jwt-auth/v1/token"
-    const val VALIDATE_URL = "$SITE/wp-json/jwt-auth/v1/token/validate"
     /** Préfixe des identifiants Toque des recettes Cookomix. */
     const val ID_PREFIX = "ckx-"
     const val TAG = "Cookomix"
@@ -62,9 +60,7 @@ object Cookomix {
         LIST_SHRUNK("CKX-04"),
         PAGES_UNREADABLE("CKX-05"),
         TOO_MANY_INCOMPATIBLE("CKX-06"),
-        LOGIN_REFUSED("CKX-07"),
-        LOGIN_UNAVAILABLE("CKX-08"),
-        COOKBOOK_UNREADABLE("CKX-09"),
+        // CKX-07 à CKX-09 (connexion au compte, carnet) : retirés en 0.7.1, numéros non réutilisés.
         INTERNAL("CKX-10");
 
         /** Message affiché : code, cause, et ce qui arrive aux recettes déjà enregistrées. */
@@ -76,9 +72,6 @@ object Cookomix {
                 LIST_SHRUNK -> tr("liste des recettes anormalement courte")
                 PAGES_UNREADABLE -> tr("pages de recettes illisibles (le site a peut-être changé de format)")
                 TOO_MANY_INCOMPATIBLE -> tr("trop de recettes refusées d'un coup (le format des réglages a peut-être changé)")
-                LOGIN_REFUSED -> tr("connexion refusée")
-                LOGIN_UNAVAILABLE -> tr("service de connexion Cookomix indisponible ou modifié")
-                COOKBOOK_UNREADABLE -> tr("carnet de recettes illisible")
                 INTERNAL -> tr("erreur inattendue")
             }
             return "$code : $text" + if (detail.isBlank()) "" else " ($detail)"
@@ -232,13 +225,6 @@ object Cookomix {
         )
         return Result(recipe, conv.compat, conv.reasons.distinct())
     }
-
-    /** Liens de recettes d'une page (carnet de recettes d'un membre) → slugs. */
-    fun recipeSlugs(html: String): List<String> =
-        Regex("https?://www\\.cookomix\\.com/recettes/([a-z0-9-]+)/\"").findAll(html)
-            .map { it.groupValues[1] }
-            .filter { it !in setOf("categories", "type-plat", "origine", "saison", "profil") }
-            .distinct().toList()
 
     private fun jsonLdRecipe(html: String): Map<String, Any?>? {
         for (m in Regex("<script[^>]*application/ld\\+json[^>]*>(.*?)</script>", RegexOption.DOT_MATCHES_ALL).findAll(html)) {
@@ -597,56 +583,4 @@ object Cookomix {
             else -> speed
         })
     }.joinToString(" / ")
-
-    // ------------------------------------------------------------------ compte (JWT)
-
-    class Account(val token: String, val email: String, val login: String, val displayName: String)
-
-    /** Corps de la demande de jeton (email ou pseudo + mot de passe). */
-    fun tokenBody(user: String, password: String): String =
-        Json.write(linkedMapOf("username" to user.trim(), "password" to password))
-
-    class Login(val account: Account?, val error: Error?, val detail: String)
-
-    /** Réponse de [TOKEN_URL] (et son code HTTP) : compte, ou erreur codée. */
-    fun parseLogin(json: String, httpCode: Int): Login {
-        val (account, detail) = parseToken(json)
-        if (account != null) return Login(account, null, "")
-        val refused = httpCode == 403 || httpCode == 401 ||
-            Regex("incorrect_password|invalid_email|invalid_username|empty_").containsMatchIn(json)
-        return Login(null, if (refused) Error.LOGIN_REFUSED else Error.LOGIN_UNAVAILABLE, detail)
-    }
-
-    /** Réponse de [TOKEN_URL] : compte, ou message d'erreur du site. */
-    fun parseToken(json: String): Pair<Account?, String> {
-        val m = try {
-            Json.parse(json).obj()
-        } catch (_: Exception) {
-            return null to tr("réponse illisible du site")
-        }
-        val token = m.str("token")?.trim().orEmpty()
-        if (token.isNotEmpty()) {
-            return Account(
-                token,
-                m.str("user_email").orEmpty(),
-                m.str("user_nicename").orEmpty(),
-                m.str("user_display_name").orEmpty(),
-            ) to ""
-        }
-        val code = m.str("code").orEmpty()
-        val message = McOnline.plain(m.str("message"))?.let { it.substringAfter("ERREUR :").substringAfter("Error:").trim() }
-        return null to when {
-            code.contains("incorrect_password") -> tr("mot de passe incorrect")
-            code.contains("invalid_email") || code.contains("invalid_username") -> tr("compte inconnu")
-            !message.isNullOrEmpty() -> message
-            else -> tr("connexion refusée")
-        }
-    }
-
-    fun authHeader(token: String): Map<String, String> = mapOf("Authorization" to "Bearer $token")
-
-    fun memberCookbookUrl(login: String): String = "$SITE/membres/$login/cookbook/"
-
-    /** La page reçue est-elle bien un carnet de recettes Cookomix (et non une page d'erreur) ? */
-    fun looksLikeCookbook(html: String): Boolean = html.contains("cookbook") && html.contains("cookomix")
 }

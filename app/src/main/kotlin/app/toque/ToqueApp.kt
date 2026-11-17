@@ -47,6 +47,7 @@ class ToqueApp : Application() {
             }
         }
         log.write("interface", "démarrage")
+        prefs.forgetCookomixAccount()
         TimeSync.start(this, prefs, log)
         resumeInterruptedSyncs()
     }

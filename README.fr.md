@@ -47,9 +47,10 @@
 > sont retéléchargées. Les recettes apparaissent pendant la synchro, avec leur photo. Options :
 > **Inclure les recettes adaptées** (activée par défaut ; désactivée, les recettes adaptées sont
 > retirées à la synchro suivante, sauf celles en favori) et **Synchro Cookomix chaque nuit**
-> (désactivée par défaut). Le **compte Cookomix** (email ou pseudo + mot de passe, facultatif) sert à
-> importer les recettes du carnet dans les favoris (**Importer mes favoris**, après une synchro) ;
-> seul un jeton de connexion est enregistré, jamais le mot de passe. Si le site est en panne ou
+> (désactivée par défaut). Aucun compte Cookomix n'est nécessaire : les favoris se gardent dans Toque
+> (étoile sur une recette). (L'import du carnet Cookomix par connexion au compte a été retiré en
+> 0.7.1 : le site refuse cette connexion aux applications et ne montre le carnet qu'à son
+> propriétaire connecté sur le site.) Si le site est en panne ou
 > change de format, la synchro s'arrête avec un code d'erreur (CKX-01 à CKX-10, décrits dans
 > [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md)) sans supprimer aucune recette déjà
 > enregistrée. Les recettes restent la propriété de Cookomix et de leurs auteurs : elles sont
