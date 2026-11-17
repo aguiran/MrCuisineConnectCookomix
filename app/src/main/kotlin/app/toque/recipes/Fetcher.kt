@@ -26,7 +26,7 @@ class Fetcher(private val version: String, private val repo: RecipeRepo) {
         var bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
             ?: throw IOException(tr("image illisible"))
         if (bmp.width > MAX_WIDTH) {
-            val scaled = Bitmap.createScaledBitmap(bmp, MAX_WIDTH, bmp.height * MAX_WIDTH / bmp.width, true)
+            val scaled = Bitmap.createScaledBitmap(bmp, MAX_WIDTH, (bmp.height * MAX_WIDTH / bmp.width).coerceAtLeast(1), true)
             if (scaled !== bmp) bmp.recycle()
             bmp = scaled
         }

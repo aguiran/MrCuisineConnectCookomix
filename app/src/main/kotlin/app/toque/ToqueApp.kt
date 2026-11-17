@@ -56,6 +56,16 @@ class ToqueApp : Application() {
      * elle reprend toute seule, là où elle s'était arrêtée (index enregistré au fil de l'eau).
      */
     private fun resumeInterruptedSyncs() {
+        if (!prefs.lidlSyncPending && !prefs.cookomixSyncPending) return
+        // Une synchro qui fait elle-même tomber l'appli ne doit pas reprendre à chaque démarrage.
+        if (prefs.syncResumes >= MAX_RESUMES) {
+            log.write("synchro", "synchro interrompue $MAX_RESUMES fois de suite : plus de reprise automatique")
+            prefs.lidlSyncPending = false
+            prefs.cookomixSyncPending = false
+            prefs.syncResumes = 0
+            return
+        }
+        prefs.syncResumes = prefs.syncResumes + 1
         // Les deux synchros reprennent en même temps, comme elles avaient été lancées.
         if (prefs.lidlSyncPending) resume("synchro", "toque-reprise-lidl") {
             app.toque.recipes.OnlineSync(this, prefs, recipes, log).sync()
@@ -66,6 +76,7 @@ class ToqueApp : Application() {
     }
 
     private fun resume(tag: String, name: String, sync: () -> Unit) {
+        resumesScheduled.incrementAndGet()
         Thread({
             try {
                 Thread.sleep(RESUME_DELAY_MS)
@@ -73,6 +84,8 @@ class ToqueApp : Application() {
                 sync()
             } catch (e: Exception) {
                 log.crash(tag, e)
+            } finally {
+                resumesScheduled.decrementAndGet()
             }
         }, name).start()
     }
@@ -89,5 +102,9 @@ class ToqueApp : Application() {
 
         /** Délai avant la reprise d'une synchro interrompue (laisse l'appli démarrer). */
         const val RESUME_DELAY_MS = 8_000L
+        private const val MAX_RESUMES = 3
+
+        /** Reprises programmées et pas encore lancées (pour l'affichage dans Réglages). */
+        val resumesScheduled = java.util.concurrent.atomic.AtomicInteger(0)
     }
 }

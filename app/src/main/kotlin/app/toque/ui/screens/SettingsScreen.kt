@@ -39,6 +39,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     private lateinit var ckxText: TextView
     private lateinit var ckxAccount: LinearLayout
     private var ckxBusy = false
+    /** Une seule boucle de suivi par synchro, quel que soit le nombre d'appels (onShow, boutons…). */
+    private val ckxPoll = Runnable { if (ckxText.isAttachedToWindow) refreshCookomix() }
+    private val lidlPoll = Runnable { if (syncText.isAttachedToWindow) refreshSync() }
     private lateinit var bowlText: TextView
     private lateinit var linkText: TextView
     private lateinit var timeText: TextView
@@ -405,13 +408,15 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     }
 
     private fun refreshCookomix() {
-        if (CookomixSync.isRunning || a.prefs.cookomixSyncPending) {
+        ckxText.removeCallbacks(ckxPoll)
+        val resuming = a.prefs.cookomixSyncPending && app.toque.ToqueApp.resumesScheduled.get() > 0
+        if (CookomixSync.isRunning || resuming) {
             // Synchro lancée avant d'ouvrir cet écran, de nuit, ou interrompue et sur le point de
             // reprendre toute seule : on suit sa progression.
             ckxText.text = CookomixSync.current.ifEmpty {
                 if (CookomixSync.isRunning) tr("Synchronisation Cookomix en cours…") else tr("Reprise automatique dans quelques secondes…")
             }
-            ckxText.postDelayed({ if (ckxText.isAttachedToWindow) refreshCookomix() }, 1_000)
+            ckxText.postDelayed(ckxPoll, 1_000)
             return
         }
         val last = a.prefs.cookomixLastResult
@@ -494,13 +499,15 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     }
 
     private fun refreshSync() {
-        if (OnlineSync.isRunning || a.prefs.lidlSyncPending) {
+        syncText.removeCallbacks(lidlPoll)
+        val resuming = a.prefs.lidlSyncPending && app.toque.ToqueApp.resumesScheduled.get() > 0
+        if (OnlineSync.isRunning || resuming) {
             // Synchro lancée avant d'ouvrir cet écran, de nuit, ou interrompue et sur le point de
             // reprendre toute seule : on suit sa progression.
             syncText.text = OnlineSync.current.ifEmpty {
                 if (OnlineSync.isRunning) tr("Synchronisation en cours… (quelques minutes)") else tr("Reprise automatique dans quelques secondes…")
             }
-            syncText.postDelayed({ if (syncText.isAttachedToWindow) refreshSync() }, 1_000)
+            syncText.postDelayed(lidlPoll, 1_000)
             return
         }
         val last = a.prefs.lastSyncResult

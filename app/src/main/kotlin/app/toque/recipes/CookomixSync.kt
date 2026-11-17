@@ -227,14 +227,19 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
 
     /** Recettes enregistrées depuis le dernier rechargement de la liste. */
     private var unseen = 0
+    private var shownOnce = false
 
     private fun save(batch: MutableList<Recipe>, index: Map<String, String>) {
         if (batch.isNotEmpty()) {
             unseen += batch.size
             // La première synchro dure environ une heure : les recettes apparaissent par paquets
             // dans la liste au lieu d'attendre la fin.
-            repo.upsertAll(ArrayList(batch), rebuild = unseen >= REFRESH_EVERY)
-            if (unseen >= REFRESH_EVERY) unseen = 0
+            // Premier affichage vite (100 recettes), puis tous les 500 : chaque rechargement relit tout
+            // le catalogue, ce qui coûte en mémoire et en temps sur la tablette du robot.
+            val every = if (shownOnce) REFRESH_EVERY else REFRESH_FIRST
+            val refresh = unseen >= every
+            repo.upsertAll(ArrayList(batch), rebuild = refresh)
+            if (refresh) { unseen = 0; shownOnce = true }
         }
         batch.clear()
         writeIndex(index)
@@ -245,8 +250,11 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         if (!url.startsWith("http") || repo.imageFile(url) != null) return
         try {
             fetcher.savePhoto(url)
-        } catch (e: IOException) {
-            log.write("cookomix", "photo $url : ${e.message}")
+        } catch (e: Exception) {
+            // Une photo, quelle que soit l'erreur, ne doit pas arrêter la synchro des recettes.
+            log.write("cookomix", "photo $url : $e")
+        } catch (e: OutOfMemoryError) {
+            log.write("cookomix", "photo $url : mémoire insuffisante")
         }
         pause(300)
     }
@@ -292,6 +300,7 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
 
     private fun finish(r: LidlSync.Report): LidlSync.Report {
         // Terminée (réussie ou arrêtée sur une erreur) : pas de reprise automatique au démarrage.
+        prefs.syncResumes = 0
         prefs.cookomixSyncPending = false
         val stamp = SimpleDateFormat(tr("dd/MM à HH:mm"), I18n.locale).format(Date())
         prefs.cookomixLastSyncMs = System.currentTimeMillis()
@@ -315,7 +324,8 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         private const val UNREADABLE = "illisible"
         /** Une page toutes les ~1,2 s : environ 50 minutes pour tout le site la première fois. */
         private const val PAGE_PAUSE_MS = 1_200L
-        private const val REFRESH_EVERY = 200
+        private const val REFRESH_FIRST = 100
+        private const val REFRESH_EVERY = 500
         private val running = AtomicBoolean(false)
 
         val isRunning: Boolean get() = running.get()

@@ -112,7 +112,6 @@ class CategoriesScreen(
         val origins = listOf(Origin.ALL, Origin.LIDL, Origin.COOKOMIX)
         tabRow.addView(Ui.tabs(c, listOf(tr("Tout"), "Lidl", "Cookomix"), origins.indexOf(origin)) { i ->
             origin = origins[i]
-            a.prefs.recipeOrigin = origin.name
             buildTabs()
             show()
         })

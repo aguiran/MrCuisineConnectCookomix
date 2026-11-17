@@ -39,7 +39,10 @@ import java.util.concurrent.Executors
 class RecipesScreen(a: MainActivity, private val focusSearch: Boolean = false, favorites: Boolean = false) : Screen(a) {
     override val title = if (favorites) tr("Favoris") else tr("Recettes")
 
-    private var filter = RecipeFilter(favoritesOnly = favorites, origin = Origin.of(a.prefs.recipeOrigin))
+    // Favoris et recherche lancée depuis l'accueil : toutes les sources (l'onglet mémorisé masquerait
+    // sans prévenir les résultats de l'autre) ; le catalogue reprend l'onglet mémorisé.
+    private var filter = RecipeFilter(favoritesOnly = favorites,
+        origin = if (favorites || focusSearch) Origin.ALL else Origin.of(a.prefs.recipeOrigin))
     private lateinit var tabRow: LinearLayout
     private var query = ""
     private var results: List<SearchIndex.Hit> = emptyList()

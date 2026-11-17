@@ -147,6 +147,13 @@ class Prefs(context: Context) {
             p.edit().putBoolean("cookomixSyncPending", v).commit()
         }
 
+    /** Reprises automatiques consécutives d'une synchro qui ne se termine pas (évite une boucle). */
+    var syncResumes: Int
+        get() = p.getInt("syncResumes", 0)
+        set(v) {
+            p.edit().putInt("syncResumes", v).commit()
+        }
+
     var lastSyncMs: Long
         get() = p.getLong("lastSyncMs", 0)
         set(v) {

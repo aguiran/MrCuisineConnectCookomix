@@ -120,17 +120,29 @@ class ManualScreen(a: MainActivity, preset: app.toque.core.recipes.StepMachine? 
         return (s + dir * step).coerceIn(5, max)
     }
 
-    /** Durées possibles (pas de 5 s, puis 30 s, puis 1 min), pour la molette. */
-    private fun durations(): List<Int> {
+    /** Durées possibles pour la molette (pas de 5 s, puis 30 s, puis 1 min), selon la durée max. */
+    private val durationsLong by lazy { durationList((Limits.MAX_MS_DEFAULT / 1000).toInt()) }
+    private val durationsShort by lazy { durationList((Limits.MAX_MS_HIGH_SPEED / 1000).toInt()) }
+
+    private fun durations(): List<Int> = if (speed > 6) durationsShort else durationsLong
+
+    private fun durationList(max: Int): List<Int> {
         val out = ArrayList<Int>()
         var s = 5
-        while (true) {
+        while (s <= max) {
             out += s
-            val n = nextSeconds(s, 1)
-            if (n == s) break
-            s = n
+            s += when {
+                s < 60 -> 5
+                s < 600 -> 30
+                else -> 60
+            }
         }
         return out
+    }
+
+    private fun timeDialPosition(): Int {
+        val times = durations()
+        return times.indexOfFirst { it >= seconds }.let { if (it < 0) times.size - 1 else it }
     }
 
     private fun limitToast(text: String) {
@@ -151,10 +163,16 @@ class ManualScreen(a: MainActivity, preset: app.toque.core.recipes.StepMachine? 
     }
 
     /** Molette : position visée → valeur, avec les mêmes limites que les boutons. */
-    private fun pick(card: Int, pos: Int) {
+    private fun pick(card: Int, target: Int) {
         selected = card
+        // Pendant une cuisson, température et vitesse ne bougent que d'un cran par geste, comme avec
+        // les boutons (pas de saut de la vitesse 2 à 10 d'un glissé pendant que la lame tourne).
+        val pos = if (live && card == 1) {
+            val cur = tempSteps.indexOf(tempLevel).coerceAtLeast(0)
+            target.coerceIn(cur - 1, cur + 1)
+        } else if (live && card == 2) target.coerceIn(speed - 2, speed) else target
         when (card) {
-            0 -> seconds = durations()[pos.coerceIn(0, durations().size - 1)]
+            0 -> { val times = durations(); seconds = times[pos.coerceIn(0, times.size - 1)] }
             1 -> {
                 tempLevel = tempSteps[pos.coerceIn(0, tempSteps.size - 1)]
                 if (tempLevel > 0 && speed > Limits.MAX_SPEED_HEATED) {
@@ -278,8 +296,7 @@ class ManualScreen(a: MainActivity, preset: app.toque.core.recipes.StepMachine? 
             else -> tr("Mixer")
         } + if (reverse) " · " + tr("inverse") else "")
         val t = if (tempLevel == 0) 0 else Mcc.celsiusForLevel(tempLevel)
-        val times = durations()
-        timeCard.setDial(times.size, times.indexOfFirst { it >= seconds }.let { if (it < 0) times.size - 1 else it }, Ui.ACCENT)
+        timeCard.setDial(durations().size, timeDialPosition(), Ui.ACCENT)
         tempCard.setDial(tempSteps.size, tempSteps.indexOf(tempLevel).coerceAtLeast(0), if (t == 0) Ui.TEXT3 else Ui.tempColor(t))
         speedCard.setDial(10, speed - 1, Ui.ACCENT)
         for (card in listOf(timeCard, tempCard, speedCard)) card.setDialMode(dials)
@@ -317,6 +334,7 @@ class ManualScreen(a: MainActivity, preset: app.toque.core.recipes.StepMachine? 
             if (remaining != seconds) {
                 seconds = remaining
                 timeCard.set(Ui.clock(seconds * 1000L), "", tr("restant"))
+                timeCard.setDial(durations().size, timeDialPosition(), Ui.ACCENT)
             }
         }
         if (wasLive && !live && !manualJob) {
