@@ -48,6 +48,30 @@ class ToqueApp : Application() {
         }
         log.write("interface", "démarrage")
         TimeSync.start(this, prefs, log)
+        resumeInterruptedSyncs()
+    }
+
+    /**
+     * Synchro interrompue par un arrêt de l'appli (mise à jour, coupure de courant, plantage) :
+     * elle reprend toute seule, là où elle s'était arrêtée (index enregistré au fil de l'eau).
+     */
+    private fun resumeInterruptedSyncs() {
+        if (!prefs.lidlSyncPending && !prefs.cookomixSyncPending) return
+        Thread({
+            try {
+                Thread.sleep(8_000)
+                if (prefs.lidlSyncPending) {
+                    log.write("synchro", "reprise de la synchro Lidl interrompue")
+                    app.toque.recipes.OnlineSync(this, prefs, recipes, log).sync()
+                }
+                if (prefs.cookomixSyncPending) {
+                    log.write("cookomix", "reprise de la synchro Cookomix interrompue")
+                    app.toque.recipes.CookomixSync(this, prefs, recipes, log).sync()
+                }
+            } catch (e: Exception) {
+                log.crash("synchro", e)
+            }
+        }, "toque-reprise-synchro").start()
     }
 
     private fun isMainProcess(): Boolean {

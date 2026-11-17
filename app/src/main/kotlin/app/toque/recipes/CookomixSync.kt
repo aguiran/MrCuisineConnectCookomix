@@ -51,6 +51,7 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
 
     fun sync(progress: (String) -> Unit = {}): LidlSync.Report {
         if (!running.compareAndSet(false, true)) return LidlSync.Report(false, tr("Synchronisation déjà en cours"))
+        prefs.cookomixSyncPending = true
         try {
             // Progression partagée : un écran Réglages rouvert pendant la synchro la retrouve.
             return finish(run { msg -> current = msg; progress(msg) })
@@ -289,6 +290,8 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
     }
 
     private fun finish(r: LidlSync.Report): LidlSync.Report {
+        // Terminée (réussie ou arrêtée sur une erreur) : pas de reprise automatique au démarrage.
+        prefs.cookomixSyncPending = false
         val stamp = SimpleDateFormat(tr("dd/MM à HH:mm"), I18n.locale).format(Date())
         prefs.cookomixLastSyncMs = System.currentTimeMillis()
         prefs.cookomixLastResult = "$stamp : ${r.message}"

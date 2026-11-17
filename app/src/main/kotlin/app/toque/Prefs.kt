@@ -119,6 +119,20 @@ class Prefs(context: Context) {
             p.edit().putBoolean("autoSync", v).commit()
         }
 
+    /** Synchro Lidl commencée et pas terminée (appli arrêtée en cours) : reprise au démarrage. */
+    var lidlSyncPending: Boolean
+        get() = p.getBoolean("lidlSyncPending", false)
+        set(v) {
+            p.edit().putBoolean("lidlSyncPending", v).commit()
+        }
+
+    /** Synchro Cookomix commencée et pas terminée : reprise au démarrage. */
+    var cookomixSyncPending: Boolean
+        get() = p.getBoolean("cookomixSyncPending", false)
+        set(v) {
+            p.edit().putBoolean("cookomixSyncPending", v).commit()
+        }
+
     var lastSyncMs: Long
         get() = p.getLong("lastSyncMs", 0)
         set(v) {

@@ -33,6 +33,7 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
 
     fun sync(progress: (String) -> Unit = {}): LidlSync.Report {
         if (!running.compareAndSet(false, true)) return LidlSync.Report(false, tr("Synchronisation déjà en cours"))
+        prefs.lidlSyncPending = true
         try {
             // Progression partagée : un écran Réglages rouvert pendant la synchro la retrouve.
             return finish(run { msg -> current = msg; progress(msg) })
@@ -178,6 +179,8 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
     }
 
     private fun finish(r: LidlSync.Report): LidlSync.Report {
+        // Terminée (réussie ou arrêtée sur une erreur) : pas de reprise automatique au démarrage.
+        prefs.lidlSyncPending = false
         val stamp = SimpleDateFormat(tr("dd/MM à HH:mm"), I18n.locale).format(Date())
         prefs.lastSyncMs = System.currentTimeMillis()
         prefs.lastSyncResult = "$stamp : ${r.message}"
