@@ -272,7 +272,8 @@ class Prefs(context: Context) {
 
     /** Connexion au compte Cookomix retirée (0.7.1) : efface jeton et pseudo d'une version précédente. */
     fun forgetCookomixAccount() {
-        if (p.contains("cookomixToken") || p.contains("cookomixLogin") || p.contains("cookomixName"))
-            p.edit().remove("cookomixToken").remove("cookomixLogin").remove("cookomixName").commit()
+        if (p.getBoolean("cookomixAccountForgotten", false)) return
+        p.edit().remove("cookomixToken").remove("cookomixLogin").remove("cookomixName")
+            .putBoolean("cookomixAccountForgotten", true).commit()
     }
 }
