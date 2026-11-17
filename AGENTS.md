@@ -37,7 +37,9 @@ and the script uses the serial driver by default. With them, `backup` and two la
 gave identical images, and `flash-twrp` wrote and verified TWRP. That is one robot and one Mac:
 if download mode does not work from the Mac, see
 [When mtkclient does not reach the robot](#when-mtkclient-does-not-reach-the-robot). Tell the
-person this before starting.
+person this before starting. These install runs were done by the upstream projects (Wuki60 for
+Windows, flexbox for macOS); this fork only changes where the scripts download Toque from, and its
+Toque (with Cookomix) has only run on a phone in Demo mode, never on a robot.
 
 ## Rules for the agent
 
@@ -124,10 +126,11 @@ step, have the person switch it off. `ls /dev/cu.usbmodem*` lists nothing once i
 | 9 | `wifi` | agent | ADB over Wi-Fi (port 5555), so the cable can go and the cover go back on. |
 
 Then: Toque › Settings › Lidl recipes › **Sync** (about 15 minutes the first time), and
-Settings › Cookomix recipes › **Sync Cookomix** (about an hour the first time).
+Settings › Cookomix recipes › **Sync Cookomix** (an hour or more the first time).
 
-This fork's Toque (0.6.x, with the Cookomix recipes) has **not run on a robot yet**: tell the person,
-and ask them to check each imported setting before starting it the first times.
+This fork's Toque (with the Cookomix recipes) has only run on a phone in Demo mode, **never on a
+robot**: tell the person, ask them to keep *Settings › Safety › Ask to confirm recipe settings* on
+(on by default) and to check each imported setting before starting it the first times.
 
 ### Power-on rules (the source of most confusion)
 
@@ -214,7 +217,8 @@ and without macFUSE the FUSE package stops mtkclient from starting
 ## After the install
 
 - Updates: Toque › Settings › Updates installs new releases from this fork.
-- Cookomix recipes: Settings › Cookomix recipes › Sync (cookomix.com, about an hour the first time).
+- Cookomix recipes: Settings › Cookomix recipes › **Sync Cookomix** (cookomix.com, an hour or more
+  the first time; an interrupted sync resumes by itself at start-up).
   Error codes CKX-01 to CKX-10: [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md).
 - Recipes: Settings › Lidl recipes › Sync (monsieur-cuisine.com, no account). Nightly re-sync.
 - Clock: set automatically (time zone from the Internet connection); Settings › Date and time.
@@ -230,4 +234,6 @@ and `./gradlew :app:assembleRelease`, with JDK 17 or 21 (Android Studio's:
 `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`). Interface texts are
 written in French and wrapped in `tr(...)`. Motor safety rules live in `core/.../machine/Safety.kt`
 and are enforced by `MachineController`: keep them strict, and add a test in `ControllerTest` for any
-behaviour change.
+behaviour change. The Cookomix conversion (Thermomix → MCC) lives in `core/.../recipes/Cookomix.kt`
+(tests: `CookomixTest`, and `CookomixTwinTest` with `tools/twin.py` running); every `Cookomix.Error`
+code must have a row in `docs/COOKOMIX-ERREURS.md` (checked by `CookomixTest.errorCodes`).

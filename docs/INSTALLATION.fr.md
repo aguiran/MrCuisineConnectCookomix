@@ -53,11 +53,14 @@ puis `adb install -r Toque-X.Y.Z.apk`. Les mises à jour suivantes viendront de 
   quoi que ce soit, et la **sauvegarde** faite au début est votre voie de retour : ne la sautez
   jamais, gardez-en une copie.
 - Toque tourne au quotidien sur deux robots : un installé depuis Windows (octobre 2026), un depuis
-  un Mac (novembre 2026). C'est peu : à vos risques.
-- **La version avec Cookomix (0.6.x) n'a pas encore tourné sur un robot.** Elle ne change rien au
-  pilotage du moteur ni aux règles de sécurité de Toque : les réglages des recettes Cookomix sont
-  convertis pour le MCC, puis contrôlés par les mêmes sécurités que les recettes Lidl, et chacun
-  est à confirmer avant d'être lancé. Vérifiez quand même chaque réglage les premières fois.
+  un Mac (novembre 2026) (le Toque d'origine, sans Cookomix, installé par les projets d'origine).
+  C'est peu : à vos risques.
+- **La version avec Cookomix n'a pas encore tourné sur un robot** (seulement sur un téléphone
+  Android en mode Démo). Elle ne change rien au pilotage du moteur ni aux règles de sécurité de
+  Toque : les réglages des recettes Cookomix sont convertis pour le MCC, puis contrôlés par les
+  mêmes sécurités que les recettes Lidl, et, par défaut, chacun est à confirmer avant d'être lancé
+  (*Réglages › Sécurité › Faire confirmer les réglages des recettes*, à laisser activée). Vérifiez
+  quand même chaque réglage les premières fois.
 
 ### Les 3 règles à retenir
 
@@ -279,13 +282,13 @@ C'est fini.
 1. Dans Toque : **Réglages › Machine › Machine réelle › Appliquer**. Toque coupe le service moteur
    de l'appli d'origine (réversible) et ouvre le port série.
 2. La pastille en haut à droite doit passer à **« Prête »**. Sinon : Réglages › Outils ›
-   Diagnostic (trames reçues ?) et Journal.
+   Diagnostic de la base moteur (trames reçues ?) et Journal.
 3. Bol vide, couvercle fermé, **main près de l'interrupteur** :
    - Cuisson manuelle : 10 s, vitesse 2 → le moteur tourne puis s'arrête seul.
    - Ouvrir le couvercle pendant un essai → arrêt immédiat, « Pause : couvercle ouvert ».
    - 30 s à 37 °C, vitesse 1 → la température affichée monte.
    - Balance : poser un objet de poids connu, Tare.
-   - Diagnostic : retirer le bol et regarder « Bol détecté ». S'il change bien, vous pouvez
+   - Diagnostic de la base moteur : retirer le bol et regarder « Bol détecté ». S'il change bien, vous pouvez
      activer Réglages › Sécurité › « Exiger la détection du bol ».
 4. Au moindre comportement anormal : **interrupteur**, puis revenez à l'appli d'origine
    ([partie 6](#6-revenir-en-arrière)).
@@ -305,13 +308,24 @@ d'origine »** la laisse se synchroniser avec les serveurs Lidl ; revenez avec l
 
 **Réglages › Recettes Cookomix › Synchroniser Cookomix** (robot en Wi-Fi). Toque lit les recettes
 de cookomix.com, écrites pour le Thermomix, et garde celles que le MCC peut faire, avec leurs
-réglages convertis : environ une heure la première fois (une page par seconde), ensuite seulement
-les nouvelles ou modifiées. Elles portent le mot-clé « Cookomix » ; celles dont un réglage a dû être
-adapté portent aussi « Adaptée MCC » et le disent dans leurs notes. Comme pour les recettes Lidl,
-chaque réglage est à confirmer avant d'être lancé.
+réglages convertis : une heure ou plus la première fois (une page toutes les 1 à 2 secondes, photos
+comprises), ensuite seulement les nouvelles ou modifiées. Les recettes apparaissent pendant la
+synchro, avec leur photo. Si Toque s'arrête en cours (coupure, mise à jour), la synchro reprend
+toute seule au démarrage suivant. Les recettes portent le mot-clé « Cookomix » ; celles dont un
+réglage a dû être adapté portent aussi « Adaptée MCC » et le disent dans leurs notes. Par défaut,
+comme pour les recettes Lidl, chaque réglage est à confirmer avant d'être lancé (option
+*Réglages › Sécurité › Faire confirmer les réglages des recettes*, à laisser activée).
+
+Dans l'écran **Recettes**, les onglets **Tout / Lidl / Cookomix** séparent les deux sources (leurs
+catégories ne sont pas les mêmes) et **« Catégories… »** ouvre la liste de toutes les catégories.
+
+Options de la section : **Inclure les recettes adaptées** (activée par défaut ; désactivée, les
+recettes adaptées sont retirées à la synchro suivante, sauf celles en favori) et **Synchro Cookomix
+chaque nuit** (désactivée par défaut).
 
 Le compte Cookomix (email ou pseudo + mot de passe) est **facultatif** : il ne sert qu'à importer
-votre carnet de recettes dans les favoris. Seul un jeton de connexion est enregistré sur le robot.
+votre carnet de recettes dans les favoris (**Importer mes favoris**, une fois les recettes
+synchronisées). Seul un jeton de connexion est enregistré sur le robot.
 
 Si la synchro affiche un code **CKX-01** à **CKX-10** (site en panne, format changé…), les recettes
 déjà enregistrées restent disponibles : voir [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md).

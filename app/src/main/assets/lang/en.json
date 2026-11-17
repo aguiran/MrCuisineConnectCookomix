@@ -210,7 +210,7 @@
   "La base ne répond pas": "The base is not responding",
   "La cause est toujours présente : %s": "The cause is still present: %s",
   "La chauffe reste active alors qu'elle devrait être coupée. Coupez l'interrupteur principal.": "The heater is still on when it should be off. Switch off the main switch.",
-  "La première fois, compter environ une heure (une page par seconde, pour ne pas surcharger le site).": "The first time, allow about an hour (one page per second, so as not to overload the site).",
+  "La première fois, compter une heure ou plus (une page toutes les 1 à 2 secondes, photos comprises, pour ne pas surcharger le site). Les recettes apparaissent au fur et à mesure.": "The first time, allow an hour or more (one page every 1–2 seconds, photos included, so as not to overload the site). Recipes appear as they come.",
   "La version installée n'a pas la même signature. Désinstallez Toque une fois, puis installez la version de GitHub.": "The installed version has a different signature. Uninstall Toque once, then install the GitHub version.",
   "La vitesse montera progressivement.": "The speed will increase gradually.",
   "Lame": "Blade",

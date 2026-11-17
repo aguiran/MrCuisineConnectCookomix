@@ -6,42 +6,54 @@
 > Cuisine Connect, en plus des recettes Lidl. Toque se met à jour depuis les versions de **ce**
 > dépôt (même signature que l'original : la mise à jour se fait par-dessus sans désinstaller).
 >
-> **Comment ça marche.** Cookomix n'a pas d'API publique (son API mobile exige une clé privée).
+> **État des essais.** La version Cookomix a tourné sur un téléphone Android (Pixel) en mode Démo :
+> synchro complète, cuisson guidée contre la base simulée. Ses réglages passent les tests contre le
+> jumeau numérique du SDK. **Elle n'a encore jamais tourné sur un vrai robot** : gardez la
+> confirmation des réglages activée et vérifiez chaque réglage Cookomix les premières fois.
+>
+> **Comment ça marche.** Cookomix n'a pas d'API ouverte (son API mobile exige une clé privée).
 > Toque lit donc les pages publiques du site, depuis le robot lui-même : la liste des recettes
 > vient des sitemaps, et chaque page contient le pas-à-pas Cookomix avec des réglages structurés
-> (durée, °C, vitesse, sens inverse, pétrin, Varoma). Les recettes sont écrites pour le
-> Thermomix ; chaque réglage est converti pour le MCC
+> (durée, °C, vitesse, sens inverse, pétrin, Varoma, accessoires). Les recettes sont écrites pour
+> le Thermomix ; chaque réglage est converti pour le MCC
 > ([`Cookomix.kt`](core/src/main/kotlin/app/toque/core/recipes/Cookomix.kt)) :
 >
 > | Thermomix | Monsieur Cuisine Connect |
 > |---|---|
 > | vitesse cuillère (codée 0 par Cookomix, 40 tr/min) ou 0,5 | vitesse 1, la plus lente du MCC (les recettes Lidl mijotent aussi en vitesse 1 inverse) |
-> | vitesse décimale (3,5) | arrondie au-dessus (4) |
+> | demi-vitesse (3,5) | arrondie au-dessus (4), recette « adaptée » |
 > | température hors table (98 °C) | palier inférieur du MCC (95 °C), recette « adaptée » |
 > | Varoma (120 °C au plus sur le Thermomix) | 120 °C en manuel, même vitesse : le programme Vapeur du MCC arrête la lame et s'arrête à 60 min |
-> | « Rissoler » 120 °C vitesse 1 | 120 °C en manuel, vitesse 1 en continu (le programme Saisir du MCC ne tourne que par à-coups) |
+> | « Rissoler » 120 °C vitesse 1 | 120 °C en manuel, vitesse 1 en continu (le programme Rissoler du MCC, « Saisir » dans sa notice, ne tourne que par à-coups) |
 > | vitesse > 3 en chauffe ou en sens inverse | vitesse 3, recette « adaptée » |
-> | fouet (papillon) au-delà de la vitesse 4 | vitesse 4, recette « adaptée » |
-> | pétrin | programme Pétrir, découpé en tranches de 2 min |
-> | plus de 130 °C, mode inconnu | recette **incompatible**, non importée |
+> | fouet (papillon), suivi d'après les étapes « Ajouter l'accessoire » et le texte (« Insérer / Retirer le fouet ») | vitesse 4 au plus, recette « adaptée » au-delà ; pas de Turbo avec le fouet |
+> | pétrin | programme Pétrir, découpé en tranches de 2 min, recette « adaptée » au-delà de 2 min |
+> | durée > 99 min | découpée en plusieurs lancements, recette « adaptée » |
+> | plus de 130 °C, vitesse ou mode sans équivalent, accessoire inconnu, vitesse > 6 pendant plus de 15 min | recette **incompatible**, non importée |
 >
 > Sur **toutes les recettes du site (2 437, novembre 2026)** : 1 752 compatibles telles quelles
 > (72 %), 685 adaptées (28 % : demi-vitesse arrondie, vitesse en chauffe ou en sens inverse ramenée à
-> 3, pétrissage découpé, fouet limité à 4, température arrondie), 0 incompatible, 0 page illisible. Les limites du MCC appliquées viennent de sa notice (SKMC 1200) : 37 à 130 °C par
+> 3, pétrissage découpé, fouet limité à 4, température arrondie), 0 incompatible, 0 page illisible.
+> Les limites du MCC appliquées viennent de sa notice (SKMC 1200) : 37 °C puis 45 à 130 °C par
 > paliers de 5, vitesse 1 à 3 en chauffe et en sens inverse, 1 à 4 avec le fouet, 99 min jusqu'à la
-> vitesse 6 et 15 min au-delà. Les recettes adaptées portent le mot-clé « Adaptée MCC » et expliquent dans
-> leurs notes ce qui a changé ; le texte de l'étape rappelle le réglage Thermomix d'origine.
-> Comme pour les recettes Lidl, chaque réglage importé est à confirmer avant d'être lancé.
+> vitesse 6 et 15 min au-delà. Les recettes adaptées portent le mot-clé « Adaptée MCC » et expliquent
+> dans leurs notes ce qui a changé ; quand un réglage a été modifié, le texte de l'étape rappelle le
+> réglage Thermomix d'origine. Par défaut, comme pour les recettes Lidl, chaque réglage importé est à
+> confirmer avant d'être lancé (*Réglages › Sécurité › Faire confirmer les réglages des recettes*) ;
+> désactivée, les réglages hors limites restent refusés par la sécurité de Toque.
 >
-> *Réglages › Recettes Cookomix › Synchroniser Cookomix* : environ une heure la première fois
-> (une page par seconde), puis seules les recettes modifiées sont retéléchargées. Le **compte
-> Cookomix** (email ou pseudo + mot de passe, facultatif) sert à importer les recettes du carnet
-> dans les favoris ; seul un jeton de connexion est enregistré, jamais le mot de passe.
-> Si le site est en panne ou change de format, la synchro s'arrête avec un code d'erreur
-> (CKX-01 à CKX-10, décrits dans [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md)) sans
-> supprimer aucune recette déjà enregistrée.
-> Les recettes restent la propriété de Cookomix et de leurs auteurs : elles sont téléchargées pour
-> un usage personnel par chaque robot et ne sont pas redistribuées par ce dépôt.
+> *Réglages › Recettes Cookomix › Synchroniser Cookomix* : une heure ou plus la première fois (une
+> page toutes les 1 à 2 secondes, photos comprises), puis seules les recettes nouvelles ou modifiées
+> sont retéléchargées. Les recettes apparaissent pendant la synchro, avec leur photo. Options :
+> **Inclure les recettes adaptées** (activée par défaut ; désactivée, les recettes adaptées sont
+> retirées à la synchro suivante, sauf celles en favori) et **Synchro Cookomix chaque nuit**
+> (désactivée par défaut). Le **compte Cookomix** (email ou pseudo + mot de passe, facultatif) sert à
+> importer les recettes du carnet dans les favoris (**Importer mes favoris**, après une synchro) ;
+> seul un jeton de connexion est enregistré, jamais le mot de passe. Si le site est en panne ou
+> change de format, la synchro s'arrête avec un code d'erreur (CKX-01 à CKX-10, décrits dans
+> [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md)) sans supprimer aucune recette déjà
+> enregistrée. Les recettes restent la propriété de Cookomix et de leurs auteurs : elles sont
+> téléchargées pour un usage personnel par chaque robot et ne sont pas redistribuées par ce dépôt.
 
 ## Projet d'origine : MrCuisineVibeConnect
 
@@ -59,8 +71,10 @@ qui remplace l'appli d'origine sur la tablette du robot tout en gardant **les re
 
 > Projet indépendant, non affilié à Lidl, SilverCrest ni Hoyer. Le pilotage du moteur repose
 > sur une analyse publique du protocole ; il tourne au quotidien sur un robot (SKMC 1200, Android 6)
-> depuis octobre 2026 et sur un second depuis novembre 2026, mais n'a pas été essayé sur d'autres.
-> À utiliser à vos risques, en suivant la procédure de premier essai.
+> depuis octobre 2026 et sur un second depuis novembre 2026, mais n'a pas été essayé sur d'autres
+> (le Toque d'origine ; **la version Cookomix de ce fork n'a tourné que sur un téléphone en mode
+> Démo, jamais sur un vrai robot** : gardez la confirmation des réglages et vérifiez chaque réglage
+> Cookomix les premières fois). À utiliser à vos risques, en suivant la procédure de premier essai.
 
 ## Installer
 
@@ -87,6 +101,17 @@ l'écran du robot.
   sous-échantillonnées, vues recyclées.
 - **Recettes Cookomix** (ce fork) : les recettes de cookomix.com que le MCC peut faire, chaque
   réglage Thermomix converti pour le MCC et contrôlé par les mêmes sécurités (voir le haut de page).
+- **Recettes par source** : onglets Tout / Lidl / Cookomix (mémorisés) et page « Catégories… »
+  avec toutes les catégories et leur nombre de recettes ; l'accueil affiche « N Lidl · M Cookomix »
+  et une croix pour oublier la recette commencée.
+- **Cuisson manuelle aux boutons ou aux molettes** : réglages par boutons − / + ou par molettes
+  tactiles (choix « Boutons / Molettes », mémorisé), avec les mêmes limites de sécurité ; pendant
+  la cuisson, un cran par geste.
+- **Synchros sans surveillance** : leur progression est retrouvée en revenant dans Réglages ; une
+  synchro interrompue (coupure, mise à jour, plantage) reprend toute seule au démarrage (3 fois au
+  plus de suite).
+- **Confirmation des réglages au choix** : *Réglages › Sécurité › Faire confirmer les réglages des
+  recettes* (activée par défaut).
 - **Recettes Lidl, directement depuis monsieur-cuisine.com**. Toque télécharge les recettes
   officielles du Monsieur Cuisine connect (environ 1 700 en français, avec les réglages machine de
   chaque étape) par l'API publique du site, chaque nuit ou sur demande : aucun compte, aucun
@@ -137,16 +162,16 @@ pas une cuisson, qui se termine normalement.
 core/   Logique pure Kotlin, testée sans Android
         protocol/  trames série (15 octets émis, 27 reçus, 4800 bauds)
         machine/   règles de sécurité, contrôleur, boucle 100 ms, liaisons (série root, TCP, démo)
-        recipes/   modèle, import de la base d'origine, recherche
+        recipes/   modèle, import de la base d'origine, recherche, conversion Cookomix → MCC (Cookomix.kt)
 app/    Appli Android (minSdk 23), sans AndroidX
         machine/   service de pilotage (processus « :machine ») et IPC
-        recipes/   catalogue local, synchro Lidl
+        recipes/   catalogue local, synchros Lidl et Cookomix
         ui/        écrans
 tools/  setup/toque-setup.sh (installation complète depuis un Mac, pilotable par un agent IA), robot/
         (scripts lancés sur le robot : root, écriture depuis TWRP, restauration), scripts
         d'installation, de restauration et de publication (.sh pour macOS, les .ps1 d'origine pour
         Windows), twin.py (jumeau numérique pour tester)
-docs/   INSTALLATION.md (EN), INSTALLATION.fr.md (FR)
+docs/   INSTALLATION.md (EN), INSTALLATION.fr.md (FR), COOKOMIX-ERREURS.md (codes d'erreur CKX)
 AGENTS.md  procédure d'installation pour un agent IA
 ```
 
@@ -164,13 +189,13 @@ numéro de version comme erreur. Le JDK d'Android Studio convient :
 ## Tester sans le robot
 
 1. **Mode Démo** (par défaut) : installer l'APK sur n'importe quel Android (ou l'émulateur
-   d'Android Studio, en paysage). La base moteur est simulée ; Réglages › Outils › Diagnostic
-   permet d'ouvrir le couvercle ou de provoquer une erreur pour voir les sécurités.
+   d'Android Studio, en paysage). La base moteur est simulée ; Réglages › Outils › Diagnostic de
+   la base moteur permet d'ouvrir le couvercle ou de provoquer une erreur pour voir les sécurités.
    Réglages › Recettes Lidl › Synchroniser télécharge les recettes sur n'importe quel appareil.
 2. **Jumeau numérique** : le jumeau du [Monsieur Cuisine Developer SDK](https://github.com/antrea/monsieur-cuisine-developer-sdk)
    reproduit le protocole réel indépendamment de Toque.
    `python3 tools/twin.py --sdk <dossier du SDK>` puis, dans Toque, Réglages › Machine ›
-   Jumeau (émulateur : hôte `10.0.2.2` ; appareil réel : `adb reverse tcp:8765 tcp:8765` et
+   Jumeau numérique (PC) (émulateur : hôte `10.0.2.2` ; appareil réel : `adb reverse tcp:8765 tcp:8765` et
    hôte `127.0.0.1`). `python3 tools/twin.py --send "lid 1"` ouvre le couvercle, etc.
 3. **Recettes Cookomix sans robot** : en mode Démo, *Réglages › Recettes Cookomix › Synchroniser
    Cookomix* télécharge et convertit les recettes sur n'importe quel Android ; on peut ouvrir une
@@ -182,7 +207,12 @@ numéro de version comme erreur. Le JDK d'Android Studio convient :
    `TwinIntegrationTest` (protocole) et `CookomixTwinTest`, qui envoie chaque réglage converti
    d'une recette Cookomix au jumeau, vérifie qu'il arrive tel quel à la base, et que les réglages
    hors limites du MCC (vitesse en chauffe, sens inverse, fouet, Turbo avec le fouet ou à chaud)
-   sont refusés avant de l'atteindre.
+   sont refusés avant de l'atteindre. Le jumeau écoute sur les ports 8765 et 8770.
+
+**État des essais** : la version Cookomix a tourné sur un téléphone Pixel en mode Démo (synchro
+complète, cuisson guidée contre la base simulée), ses réglages passent les tests avec le jumeau, et
+le convertisseur a été passé sur les 2 437 recettes du site. Elle n'a jamais été essayée sur un
+vrai robot.
 
 ## Ajouter une langue
 

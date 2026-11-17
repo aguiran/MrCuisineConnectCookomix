@@ -52,7 +52,13 @@ and run `adb install -r Toque-X.Y.Z.apk`. Later updates then come from this repo
 - A mistake can leave the robot's tablet unusable. The script checks everything before it writes
   anything, and the **backup** made at the start is your way back: never skip it, keep a copy.
 - Toque runs every day on two robots: one installed from Windows (October 2026), one from a Mac
-  (November 2026). That is not many: at your own risk.
+  (November 2026) (the original Toque, without Cookomix, installed by the upstream projects). That
+  is not many: at your own risk.
+- **The Cookomix version has not run on a robot yet** (only on an Android phone in Demo mode). It
+  changes nothing in motor control or Toque's safety rules: Cookomix settings are converted for the
+  MCC, then checked by the same safety rules as Lidl recipes, and, by default, each one must be
+  confirmed before it starts (*Settings › Safety › Ask to confirm recipe settings*, keep it on).
+  Still check each setting the first times.
 
 ### The 3 rules to remember
 
@@ -298,11 +304,24 @@ Lidl's servers; come back with the **"Back to Toque"** button. If that import fa
 
 **Settings › Cookomix recipes › Sync Cookomix** (robot on Wi-Fi). Toque reads the cookomix.com
 recipes, written for the Thermomix, and keeps the ones the MCC can make, with their settings
-converted: about an hour the first time (one page per second), then only new or changed ones. The
-Cookomix account is optional (it only imports your cookbook into favourites). Error codes
-CKX-01 to CKX-10: [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md) (in French); saved recipes are never
-deleted when a sync fails. **This version (0.6.x) has not run on a robot yet**: check each setting
-the first times.
+converted: an hour or more the first time (one page every 1–2 s, photos included), then only new
+or changed ones. Recipes appear during the sync, with their photo; if Toque stops midway (power cut,
+update), the sync resumes by itself at the next start. Recipes are tagged "Cookomix"; those where a
+setting had to be adapted are also tagged "Adaptée MCC" and say so in their notes. By default, as
+for Lidl recipes, each setting must be confirmed before it starts (*Settings › Safety › Ask to
+confirm recipe settings*, keep it on).
+
+In the **Recipes** screen, the **All / Lidl / Cookomix** tabs keep the two sources apart (their
+categories differ) and **"Categories…"** opens the list of all categories.
+
+Section options: **Include adapted recipes** (on by default; when off, adapted recipes are removed
+at the next sync, except favourites) and **Nightly Cookomix sync** (off by default). The Cookomix
+account (email or username + password) is optional: it only imports your cookbook into favourites
+(**Import my favourites**, once recipes are synced); only a sign-in token is stored.
+
+Error codes CKX-01 to CKX-10: [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md) (in French); saved recipes
+are never deleted when a sync fails. **The Cookomix version has not run on a robot yet** (only on a
+phone in Demo mode): check each setting the first times.
 
 ### Every day
 

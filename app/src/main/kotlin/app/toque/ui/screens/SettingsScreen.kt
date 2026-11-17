@@ -153,7 +153,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         ckx.addView(ckxText, Ui.lp(t = 10))
         ckx.addView(Ui.button(c, tr("Synchroniser Cookomix"), Ui.Style.PRIMARY, Icon.Kind.SYNC, height = 58) { syncCookomix() },
             Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))
-        ckx.addView(Ui.text(c, tr("La première fois, compter environ une heure (une page par seconde, pour ne pas surcharger le site)."),
+        ckx.addView(Ui.text(c, tr("La première fois, compter une heure ou plus (une page toutes les 1 à 2 secondes, photos comprises, pour ne pas surcharger le site). Les recettes apparaissent au fur et à mesure."),
             14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
         ckx.addView(toggle(tr("Inclure les recettes adaptées"), a.prefs.cookomixAdapted) { a.prefs.cookomixAdapted = it }, Ui.lp(t = 10))
         ckx.addView(Ui.text(c, tr("Recettes dont un réglage a dû être modifié (vitesse en chauffe limitée à 3, pétrissage découpé en 2 min…). Elles portent le mot-clé « Adaptée MCC »."),

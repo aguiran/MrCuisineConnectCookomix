@@ -4,13 +4,52 @@
 > [flexbox/MrCuisineVibeConnect](https://github.com/flexbox/MrCuisineVibeConnect) whose Toque app
 > adds the [cookomix.com](https://www.cookomix.com) recipes that the Monsieur Cuisine Connect can
 > make, alongside the Lidl recipes. Toque updates from **this** repository's releases (same
-> signature as the original, so it installs over it). Cookomix has no public API, so Toque reads
-> the site's public pages from the robot (sitemaps + each page's structured step-by-step) and
-> converts every Thermomix setting for the MCC; see [README.fr.md](README.fr.md) for the
-> conversion table. If the site is down or changes its format, the sync stops with a documented
-> error code ([docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md), CKX-01 to CKX-10) and never
-> deletes saved recipes. Recipes stay the property of Cookomix and their authors: each robot downloads
-> them for personal use and this repository does not redistribute them.
+> signature as the original, so it installs over it).
+>
+> **What has been tried.** The Cookomix version has run on an Android phone (Pixel) in Demo mode:
+> full sync, guided cooking against the simulated base. Its settings pass the tests against the
+> SDK's digital twin. **It has never run on a real robot yet**: keep setting confirmation on and
+> check each Cookomix setting the first times.
+>
+> **How it works.** Cookomix has no open API (its mobile API needs a private key), so Toque reads
+> the site's public pages from the robot itself: the recipe list comes from the sitemaps, and each
+> page holds Cookomix's step-by-step with structured settings (time, °C, speed, reverse, kneading,
+> Varoma, accessories). Recipes are written for the Thermomix; every setting is converted for the
+> MCC ([`Cookomix.kt`](core/src/main/kotlin/app/toque/core/recipes/Cookomix.kt)):
+>
+> | Thermomix | Monsieur Cuisine Connect |
+> |---|---|
+> | spoon speed (coded 0 by Cookomix, 40 rpm) or 0.5 | speed 1, the MCC's slowest (Lidl recipes also simmer at speed 1 reverse) |
+> | half speed (3.5) | rounded up (4), recipe "adapted" |
+> | temperature off the MCC table (98 °C) | next level down (95 °C), recipe "adapted" |
+> | Varoma (120 °C at most on the Thermomix) | 120 °C manual, same speed: the MCC Steam program stops the blade and ends at 60 min |
+> | "Rissoler" (brown) 120 °C speed 1 | 120 °C manual, speed 1 continuously (the MCC's browning program only turns in bursts) |
+> | speed > 3 when heating or in reverse | speed 3, recipe "adapted" |
+> | butterfly whisk, tracked from "Add accessory" steps and the text ("Insert / Remove the whisk") | speed 4 at most, recipe "adapted" above; no Turbo with the whisk |
+> | kneading | Knead program in 2-min runs, recipe "adapted" above 2 min |
+> | time > 99 min | split into several runs, recipe "adapted" |
+> | above 130 °C, speed or mode with no equivalent, unknown accessory, speed > 6 for over 15 min | recipe **incompatible**, not imported |
+>
+> On **all the recipes on the site (2,437, November 2026)**: 1,752 compatible as is (72 %), 685
+> adapted (28 %: half speed rounded, heated or reverse speed lowered to 3, kneading split, whisk
+> limited to 4, temperature rounded), 0 incompatible, 0 unreadable page. The MCC limits come from its
+> manual (SKMC 1200): 37 °C then 45 to 130 °C in steps of 5, speed 1 to 3 when heating and in reverse,
+> 1 to 4 with the whisk, 99 min up to speed 6 and 15 min above. Adapted recipes are tagged "Adaptée
+> MCC" and their notes say what changed; when a setting was changed, the step text recalls the
+> original Thermomix setting. By default, as for Lidl recipes, each imported setting must be
+> confirmed before it starts (*Settings › Safety › Ask to confirm recipe settings*); when off,
+> settings beyond the robot's limits are still refused by Toque's safety rules.
+>
+> *Settings › Cookomix recipes › Sync Cookomix*: an hour or more the first time (one page every 1–2 s,
+> photos included), then only new or changed recipes are downloaded again. Recipes appear during the
+> sync, with their photo. Options: **Include adapted recipes** (on by default; when off, adapted
+> recipes are removed at the next sync, except favourites) and **Nightly Cookomix sync** (off by
+> default). The **Cookomix account** (email or username + password, optional) imports your cookbook
+> into favourites (**Import my favourites**, after a sync); only a sign-in token is stored, never the
+> password. If the site is down or changes its format, the sync stops with an error code (CKX-01 to
+> CKX-10, in [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md), in French) and never deletes saved
+> recipes. Recipes stay the property of Cookomix and their authors: each robot downloads them for
+> its owner's personal use and this repository does not redistribute them.
 
 ## Original project: MrCuisineVibeConnect
 
@@ -30,7 +69,9 @@ uses **the official Lidl recipes**.
 > Independent project, not affiliated with Lidl, SilverCrest or Hoyer. Motor control is based on
 > a public analysis of the serial protocol; it has been running daily on a robot (SKMC 1200,
 > Android 6) since October 2026 and on a second one since November 2026, but has not been tried on
-> others. Use at your own risk and
+> others (the original Toque; **this fork's Cookomix version has only run on a phone in Demo mode,
+> never on a real robot**: keep setting confirmation on and check each Cookomix setting the first
+> times). Use at your own risk and
 > follow the first-run procedure.
 >
 > The interface is available in **English** and **French** (*Settings › Langue · Language*), and
@@ -60,6 +101,15 @@ screen.
   original tablet (1 GB RAM, Android 6): no heavy libraries, downsampled images, recycled views.
 - **Cookomix recipes** (this fork): the cookomix.com recipes the MCC can make, with each Thermomix
   setting converted for the MCC and checked by the same safety rules; see the top of this page.
+- **Recipes by source**: All / Lidl / Cookomix tabs (remembered) and a "Categories…" page listing
+  every category with its recipe count; the home screen shows "N Lidl · M Cookomix" and a cross to
+  forget the recipe in progress.
+- **Manual cooking with buttons or dials**: − / + buttons or touch dials ("Buttons / Dials" choice,
+  remembered), with the same safety limits; while cooking, one step per gesture.
+- **Unattended syncs**: their progress is found again when coming back to Settings; an interrupted
+  sync (power cut, update, crash) resumes by itself at start-up (at most 3 times in a row).
+- **Optional setting confirmation**: *Settings › Safety › Ask to confirm recipe settings* (on by
+  default).
 - **Lidl recipes, straight from monsieur-cuisine.com.** Toque downloads the official Monsieur
   Cuisine connect recipes (about 1,700 in French, with each step's machine settings) from the
   site's public API, nightly or on demand: no account, no server to run, no need for the stock app.
@@ -108,15 +158,15 @@ cut off and finishes normally.
 core/   Pure Kotlin logic, tested without Android
         protocol/  serial frames (15 bytes sent, 27 received, 4800 baud)
         machine/   safety rules, controller, 100 ms loop, links (root serial, TCP, demo)
-        recipes/   model, stock database import, search
+        recipes/   model, stock database import, search, Cookomix → MCC conversion (Cookomix.kt)
 app/    Android app (minSdk 23), no AndroidX
         machine/   motor control service (":machine" process) and IPC
-        recipes/   local catalogue, Lidl sync
+        recipes/   local catalogue, Lidl and Cookomix syncs
         ui/        screens
 tools/  setup/toque-setup.sh (full install from a Mac, can be driven by an AI agent), robot/
         (scripts run on the robot: root, flash from TWRP, restore), install, restore and release
         scripts (.sh for macOS, the original .ps1 for Windows), twin.py (digital twin for testing)
-docs/   INSTALLATION.md, INSTALLATION.fr.md
+docs/   INSTALLATION.md, INSTALLATION.fr.md, COOKOMIX-ERREURS.md (CKX error codes, in French)
 AGENTS.md  install procedure for an AI agent
 ```
 
@@ -140,7 +190,7 @@ Android Studio's JDK works:
 2. **Digital twin**: the twin from the [Monsieur Cuisine Developer SDK](https://github.com/antrea/monsieur-cuisine-developer-sdk)
    reproduces the real protocol independently of Toque.
    Run `python3 tools/twin.py --sdk <SDK folder>`, then in Toque choose *Settings › Machine ›
-   Twin (PC)* (emulator: host `10.0.2.2`; real device: `adb reverse tcp:8765 tcp:8765` and host
+   Digital twin (PC)* (emulator: host `10.0.2.2`; real device: `adb reverse tcp:8765 tcp:8765` and host
    `127.0.0.1`). `python3 tools/twin.py --send "lid 1"` opens the lid, etc.
 3. **Cookomix recipes without the robot**: in Demo mode, *Settings › Cookomix recipes › Sync
    Cookomix* downloads and converts the recipes on any Android device; open a recipe and run the
@@ -151,7 +201,12 @@ Android Studio's JDK works:
    tests run instead of being skipped: `TwinIntegrationTest` (protocol) and `CookomixTwinTest`,
    which sends every converted setting of a Cookomix recipe to the twin, checks it reaches the
    base unchanged, and that settings beyond the MCC's limits (heated speed, reverse, whisk, Turbo
-   with the whisk or when hot) are refused before reaching it.
+   with the whisk or when hot) are refused before reaching it. The twin listens on ports 8765
+   and 8770.
+
+**What has been tried**: the Cookomix version has run on a Pixel phone in Demo mode (full sync,
+guided cooking against the simulated base), its settings pass the twin tests, and the converter has
+been run on all 2,437 recipes of the site. It has never been tried on a real robot.
 
 ## Add a language
 
