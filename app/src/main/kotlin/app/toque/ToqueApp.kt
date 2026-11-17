@@ -56,22 +56,25 @@ class ToqueApp : Application() {
      * elle reprend toute seule, là où elle s'était arrêtée (index enregistré au fil de l'eau).
      */
     private fun resumeInterruptedSyncs() {
-        if (!prefs.lidlSyncPending && !prefs.cookomixSyncPending) return
+        // Les deux synchros reprennent en même temps, comme elles avaient été lancées.
+        if (prefs.lidlSyncPending) resume("synchro", "toque-reprise-lidl") {
+            app.toque.recipes.OnlineSync(this, prefs, recipes, log).sync()
+        }
+        if (prefs.cookomixSyncPending) resume("cookomix", "toque-reprise-cookomix") {
+            app.toque.recipes.CookomixSync(this, prefs, recipes, log).sync()
+        }
+    }
+
+    private fun resume(tag: String, name: String, sync: () -> Unit) {
         Thread({
             try {
-                Thread.sleep(8_000)
-                if (prefs.lidlSyncPending) {
-                    log.write("synchro", "reprise de la synchro Lidl interrompue")
-                    app.toque.recipes.OnlineSync(this, prefs, recipes, log).sync()
-                }
-                if (prefs.cookomixSyncPending) {
-                    log.write("cookomix", "reprise de la synchro Cookomix interrompue")
-                    app.toque.recipes.CookomixSync(this, prefs, recipes, log).sync()
-                }
+                Thread.sleep(RESUME_DELAY_MS)
+                log.write(tag, "reprise de la synchro interrompue")
+                sync()
             } catch (e: Exception) {
-                log.crash("synchro", e)
+                log.crash(tag, e)
             }
-        }, "toque-reprise-synchro").start()
+        }, name).start()
     }
 
     private fun isMainProcess(): Boolean {
@@ -83,5 +86,8 @@ class ToqueApp : Application() {
 
     companion object {
         fun of(c: Context): ToqueApp = c.applicationContext as ToqueApp
+
+        /** Délai avant la reprise d'une synchro interrompue (laisse l'appli démarrer). */
+        const val RESUME_DELAY_MS = 8_000L
     }
 }

@@ -405,9 +405,12 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     }
 
     private fun refreshCookomix() {
-        if (CookomixSync.isRunning) {
-            // Synchro lancée avant d'ouvrir cet écran (ou la nuit) : on suit sa progression.
-            ckxText.text = CookomixSync.current.ifEmpty { tr("Synchronisation Cookomix en cours…") }
+        if (CookomixSync.isRunning || a.prefs.cookomixSyncPending) {
+            // Synchro lancée avant d'ouvrir cet écran, de nuit, ou interrompue et sur le point de
+            // reprendre toute seule : on suit sa progression.
+            ckxText.text = CookomixSync.current.ifEmpty {
+                if (CookomixSync.isRunning) tr("Synchronisation Cookomix en cours…") else tr("Reprise automatique dans quelques secondes…")
+            }
             ckxText.postDelayed({ if (ckxText.isAttachedToWindow) refreshCookomix() }, 1_000)
             return
         }
@@ -491,9 +494,12 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     }
 
     private fun refreshSync() {
-        if (OnlineSync.isRunning) {
-            // Synchro lancée avant d'ouvrir cet écran (ou la nuit) : on suit sa progression.
-            syncText.text = OnlineSync.current.ifEmpty { tr("Synchronisation en cours… (quelques minutes)") }
+        if (OnlineSync.isRunning || a.prefs.lidlSyncPending) {
+            // Synchro lancée avant d'ouvrir cet écran, de nuit, ou interrompue et sur le point de
+            // reprendre toute seule : on suit sa progression.
+            syncText.text = OnlineSync.current.ifEmpty {
+                if (OnlineSync.isRunning) tr("Synchronisation en cours… (quelques minutes)") else tr("Reprise automatique dans quelques secondes…")
+            }
             syncText.postDelayed({ if (syncText.isAttachedToWindow) refreshSync() }, 1_000)
             return
         }
