@@ -43,8 +43,8 @@ dans le journal (*Réglages › Outils › Journal*, lignes `cookomix`).
 Les seuils de CKX-04, CKX-05 et CKX-06 sont définis dans
 [`Cookomix.kt`](../core/src/main/kotlin/app/toque/core/recipes/Cookomix.kt) (`listLooksWrong`,
 `Breaker`) et couverts par les tests de
-[`CookomixTest.kt`](../core/src/test/kotlin/app/toque/core/CookomixTest.kt). Sur 371 recettes
-réelles (novembre 2026), aucune page n'était illisible et aucune recette incompatible : les
-seuils laissent une large marge avant de se déclencher.
+[`CookomixTest.kt`](../core/src/test/kotlin/app/toque/core/CookomixTest.kt). Sur les 2 437
+recettes du site (novembre 2026), aucune page n'était illisible et aucune recette incompatible :
+les seuils laissent une large marge avant de se déclencher.
 
 Ouvrir une issue : https://github.com/aguiran/MrCuisineConnectCookomix/issues

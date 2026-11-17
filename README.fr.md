@@ -25,8 +25,9 @@
 > | pétrin | programme Pétrir, découpé en tranches de 2 min |
 > | plus de 130 °C, mode inconnu | recette **incompatible**, non importée |
 >
-> Sur 371 recettes du site tirées au hasard : 304 compatibles telles quelles, 67 adaptées,
-> 0 incompatible. Les limites du MCC appliquées viennent de sa notice (SKMC 1200) : 37 à 130 °C par
+> Sur **toutes les recettes du site (2 437, novembre 2026)** : 1 752 compatibles telles quelles
+> (72 %), 685 adaptées (28 % : demi-vitesse arrondie, vitesse en chauffe ou en sens inverse ramenée à
+> 3, pétrissage découpé, fouet limité à 4, température arrondie), 0 incompatible, 0 page illisible. Les limites du MCC appliquées viennent de sa notice (SKMC 1200) : 37 à 130 °C par
 > paliers de 5, vitesse 1 à 3 en chauffe et en sens inverse, 1 à 4 avec le fouet, 99 min jusqu'à la
 > vitesse 6 et 15 min au-delà. Les recettes adaptées portent le mot-clé « Adaptée MCC » et expliquent dans
 > leurs notes ce qui a changé ; le texte de l'étape rappelle le réglage Thermomix d'origine.
