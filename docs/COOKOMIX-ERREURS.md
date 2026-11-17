@@ -22,7 +22,8 @@ dans le journal (*Réglages › Outils › Journal*, lignes `cookomix`).
 - **Rien n'est perdu de la progression** : les recettes déjà converties pendant la synchro
   interrompue sont enregistrées, et la synchro suivante reprend où elle s'était arrêtée.
 - **Si Toque s'arrête pendant une synchro** (coupure de courant, mise à jour, plantage), la
-  synchro reprend toute seule au démarrage suivant, 3 fois de suite au plus. Une synchro arrêtée
+  synchro reprend toute seule au démarrage suivant, 3 fois de suite au plus ; au-delà, Réglages
+  affiche « Synchronisation interrompue 3 fois de suite : relancez-la à la main. ». Une synchro arrêtée
   sur un code CKX ne reprend pas toute seule : relancez-la, ou attendez la synchro nocturne si
   elle est activée.
 - Les recettes Lidl ne sont jamais touchées par la synchro Cookomix.

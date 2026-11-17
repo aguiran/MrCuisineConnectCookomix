@@ -109,8 +109,8 @@ l'écran du robot.
   tactiles (choix « Boutons / Molettes », mémorisé), avec les mêmes limites de sécurité ; pendant
   la cuisson, un cran par geste.
 - **Synchros sans surveillance** : leur progression est retrouvée en revenant dans Réglages ; une
-  synchro interrompue (coupure, mise à jour, plantage) reprend toute seule au démarrage (3 fois au
-  plus de suite).
+  synchro interrompue (coupure, mise à jour, plantage) reprend toute seule au démarrage, 3 fois de
+  suite au plus pour chaque synchro ; au-delà, Réglages invite à la relancer à la main.
 - **Confirmation des réglages au choix** : *Réglages › Sécurité › Faire confirmer les réglages des
   recettes* (activée par défaut).
 - **Recettes Lidl, directement depuis monsieur-cuisine.com**. Toque télécharge les recettes

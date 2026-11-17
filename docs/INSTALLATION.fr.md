@@ -311,7 +311,7 @@ de cookomix.com, écrites pour le Thermomix, et garde celles que le MCC peut fai
 réglages convertis : une heure ou plus la première fois (une page toutes les 1 à 2 secondes, photos
 comprises), ensuite seulement les nouvelles ou modifiées. Les recettes apparaissent pendant la
 synchro, avec leur photo. Si Toque s'arrête en cours (coupure, mise à jour), la synchro reprend
-toute seule au démarrage suivant. Les recettes portent le mot-clé « Cookomix » ; celles dont un
+toute seule au démarrage suivant (3 fois de suite au plus). Les recettes portent le mot-clé « Cookomix » ; celles dont un
 réglage a dû être adapté portent aussi « Adaptée MCC » et le disent dans leurs notes. Par défaut,
 comme pour les recettes Lidl, chaque réglage est à confirmer avant d'être lancé (option
 *Réglages › Sécurité › Faire confirmer les réglages des recettes*, à laisser activée).

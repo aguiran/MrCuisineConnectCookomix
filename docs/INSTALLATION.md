@@ -306,7 +306,7 @@ Lidl's servers; come back with the **"Back to Toque"** button. If that import fa
 recipes, written for the Thermomix, and keeps the ones the MCC can make, with their settings
 converted: an hour or more the first time (one page every 1–2 s, photos included), then only new
 or changed ones. Recipes appear during the sync, with their photo; if Toque stops midway (power cut,
-update), the sync resumes by itself at the next start. Recipes are tagged "Cookomix"; those where a
+update), the sync resumes by itself at the next start (3 times in a row at most). Recipes are tagged "Cookomix"; those where a
 setting had to be adapted are also tagged "Adaptée MCC" and say so in their notes. By default, as
 for Lidl recipes, each setting must be confirmed before it starts (*Settings › Safety › Ask to
 confirm recipe settings*, keep it on).

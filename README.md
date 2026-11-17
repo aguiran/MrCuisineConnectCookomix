@@ -107,7 +107,8 @@ screen.
 - **Manual cooking with buttons or dials**: − / + buttons or touch dials ("Buttons / Dials" choice,
   remembered), with the same safety limits; while cooking, one step per gesture.
 - **Unattended syncs**: their progress is found again when coming back to Settings; an interrupted
-  sync (power cut, update, crash) resumes by itself at start-up (at most 3 times in a row).
+  sync (power cut, update, crash) resumes by itself at start-up, at most 3 times in a row for each
+  sync; after that, Settings asks you to start it again by hand.
 - **Optional setting confirmation**: *Settings › Safety › Ask to confirm recipe settings* (on by
   default).
 - **Lidl recipes, straight from monsieur-cuisine.com.** Toque downloads the official Monsieur
