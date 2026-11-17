@@ -286,6 +286,7 @@ object McOnline {
             .replace(Regex("<[^>]+>"), "")
             .replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
             .replace("&quot;", "\"").replace("&#39;", "'").replace("&rsquo;", "’")
+            .replace(Regex("&#(\\d{2,5});")) { m -> m.groupValues[1].toInt().toChar().toString() }
             .lines().joinToString("\n") { it.replace(Regex("[ \\t\u00a0]{2,}"), " ").trim() }
             .replace(Regex("\n{3,}"), "\n\n")
             .trim()

@@ -1,4 +1,16 @@
-# MrCuisineVibeConnect
+# MrCuisineConnectCookomix
+
+> **Fork with Cookomix recipes.** A copy of
+> [flexbox/MrCuisineVibeConnect](https://github.com/flexbox/MrCuisineVibeConnect) whose Toque app
+> adds the [cookomix.com](https://www.cookomix.com) recipes that the Monsieur Cuisine Connect can
+> make, alongside the Lidl recipes. Toque updates from **this** repository's releases (same
+> signature as the original, so it installs over it). Cookomix has no public API, so Toque reads
+> the site's public pages from the robot (sitemaps + each page's structured step-by-step) and
+> converts every Thermomix setting for the MCC; see [README.fr.md](README.fr.md) for the
+> conversion table. Recipes stay the property of Cookomix and their authors: each robot downloads
+> them for personal use and this repository does not redistribute them.
+
+## Original project: MrCuisineVibeConnect
 
 🇫🇷 **[Version française](README.fr.md)**
 

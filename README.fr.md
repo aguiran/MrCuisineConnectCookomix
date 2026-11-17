@@ -1,4 +1,43 @@
-# MrCuisineVibeConnect
+# MrCuisineConnectCookomix
+
+> **Fork avec les recettes Cookomix.** Copie de
+> [flexbox/MrCuisineVibeConnect](https://github.com/flexbox/MrCuisineVibeConnect) dont l'appli Toque
+> ajoute les recettes de [cookomix.com](https://www.cookomix.com) compatibles avec le Monsieur
+> Cuisine Connect, en plus des recettes Lidl. Toque se met à jour depuis les versions de **ce**
+> dépôt (même signature que l'original : la mise à jour se fait par-dessus sans désinstaller).
+>
+> **Comment ça marche.** Cookomix n'a pas d'API publique (son API mobile exige une clé privée).
+> Toque lit donc les pages publiques du site, depuis le robot lui-même : la liste des recettes
+> vient des sitemaps, et chaque page contient le pas-à-pas Cookomix avec des réglages structurés
+> (durée, °C, vitesse, sens inverse, pétrin, Varoma). Les recettes sont écrites pour le
+> Thermomix ; chaque réglage est converti pour le MCC
+> ([`Cookomix.kt`](core/src/main/kotlin/app/toque/core/recipes/Cookomix.kt)) :
+>
+> | Thermomix | Monsieur Cuisine Connect |
+> |---|---|
+> | vitesse 0 / 0,5 / « cuillère » | vitesse 1 |
+> | vitesse décimale (3,5) | arrondie au-dessus (4) |
+> | température hors table (98 °C) | palier inférieur du MCC (95 °C), recette « adaptée » |
+> | Varoma avec le Varoma posé, vitesse ≤ 2 | programme Vapeur |
+> | Varoma sans le Varoma | 120 °C |
+> | vitesse > 3 en chauffe ou en sens inverse | vitesse 3, recette « adaptée » |
+> | fouet (papillon) au-delà de la vitesse 4 | vitesse 4, recette « adaptée » |
+> | pétrin | programme Pétrir, découpé en tranches de 2 min |
+> | plus de 130 °C, mode inconnu | recette **incompatible**, non importée |
+>
+> Sur un échantillon de 71 recettes du site : 59 compatibles telles quelles, 12 adaptées,
+> 0 incompatible. Les recettes adaptées portent le mot-clé « Adaptée MCC » et expliquent dans
+> leurs notes ce qui a changé ; le texte de l'étape rappelle le réglage Thermomix d'origine.
+> Comme pour les recettes Lidl, chaque réglage importé est à confirmer avant d'être lancé.
+>
+> *Réglages › Recettes Cookomix › Synchroniser Cookomix* : environ une heure la première fois
+> (une page par seconde), puis seules les recettes modifiées sont retéléchargées. Le **compte
+> Cookomix** (email ou pseudo + mot de passe, facultatif) sert à importer les recettes du carnet
+> dans les favoris ; seul un jeton de connexion est enregistré, jamais le mot de passe.
+> Les recettes restent la propriété de Cookomix et de leurs auteurs : elles sont téléchargées pour
+> un usage personnel par chaque robot et ne sont pas redistribuées par ce dépôt.
+
+## Projet d'origine : MrCuisineVibeConnect
 
 🇬🇧 **[English version](README.md)**
 

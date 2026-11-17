@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.os.Handler
 import android.os.Looper
+import app.toque.core.recipes.Cookomix
 import app.toque.core.recipes.Recipe
 import app.toque.core.recipes.RecipeCodec
 import app.toque.core.recipes.RecipeSource
@@ -99,7 +100,7 @@ class RecipeRepo(private val context: Context) {
     }
 
     /**
-     * Remplace tout le catalogue par l'import du jour (miroir de l'appli d'origine).
+     * Remplace tout le catalogue Lidl par l'import du jour (miroir de l'appli d'origine).
      * Les favoris sont conservés ; ceux marqués dans l'appli d'origine sont ajoutés.
      */
     fun replaceAll(recipes: List<Recipe>) {
@@ -110,7 +111,8 @@ class RecipeRepo(private val context: Context) {
         val db = helper.writableDatabase
         db.beginTransaction()
         try {
-            db.delete("recipes", null, null)
+            // Les recettes Cookomix ne viennent pas de l'appli d'origine : on les garde.
+            db.delete("recipes", "id NOT LIKE ?", arrayOf(Cookomix.ID_PREFIX + "%"))
             val now = System.currentTimeMillis()
             for (r in recipes) {
                 val v = ContentValues()
@@ -158,12 +160,19 @@ class RecipeRepo(private val context: Context) {
         out
     }.get()
 
-    /** Supprime les recettes absentes de [keep] (catalogue miroir de la source). */
-    fun removeAllExcept(keep: Set<String>, rebuild: Boolean = true) {
+    /** Familles de recettes : une synchro ne touche que la sienne (Lidl ou Cookomix). */
+    enum class Scope {
+        LIDL, COOKOMIX;
+
+        fun owns(id: String): Boolean = id.startsWith(Cookomix.ID_PREFIX) == (this == COOKOMIX)
+    }
+
+    /** Supprime les recettes de [scope] absentes de [keep] (catalogue miroir de la source). */
+    fun removeAllExcept(keep: Set<String>, rebuild: Boolean = true, scope: Scope = Scope.LIDL) {
         exec.submit {
             val db = helper.writableDatabase
             val gone = ArrayList<String>()
-            db.rawQuery("SELECT id FROM recipes", null).use { c -> while (c.moveToNext()) c.getString(0).let { if (it !in keep) gone += it } }
+            db.rawQuery("SELECT id FROM recipes", null).use { c -> while (c.moveToNext()) c.getString(0).let { if (scope.owns(it) && it !in keep) gone += it } }
             db.beginTransaction()
             try {
                 for (id in gone) db.delete("recipes", "id = ?", arrayOf(id))

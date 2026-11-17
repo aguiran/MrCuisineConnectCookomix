@@ -20,6 +20,7 @@ import app.toque.core.machine.RootShell
 import app.toque.core.machine.Snapshot
 import app.toque.core.time.ZoneLookup
 import app.toque.core.update.Release
+import app.toque.recipes.CookomixSync
 import app.toque.recipes.LidlSync
 import app.toque.recipes.OnlineSync
 import app.toque.ui.Icon
@@ -35,6 +36,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     private lateinit var host: EditText
     private lateinit var port: EditText
     private lateinit var syncText: TextView
+    private lateinit var ckxText: TextView
+    private lateinit var ckxAccount: LinearLayout
+    private var ckxBusy = false
     private lateinit var bowlText: TextView
     private lateinit var linkText: TextView
     private lateinit var timeText: TextView
@@ -134,6 +138,25 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         b2.addView(Ui.button(c, tr("Ouvrir l'appli d'origine"), Ui.Style.GHOST, Icon.Kind.LINK, height = 52) { a.openVendorApp() })
         lidl.addView(b2, Ui.lp(t = 6))
         lidl.addView(toggle(tr("Synchro automatique chaque nuit"), a.prefs.autoSync) { a.prefs.autoSync = it }, Ui.lp(t = 10))
+
+        // ---- Recettes Cookomix
+        val ckx = section(right, tr("Recettes Cookomix"), Icon.Kind.SYNC)
+        ckx.addView(Ui.text(c, tr("Toque télécharge les recettes de cookomix.com (écrites pour le Thermomix) et garde celles que le Monsieur Cuisine connect peut faire. Les réglages sont convertis ; vérifiez-les avant de lancer chaque étape."),
+            16f, Ui.TEXT2).apply { setLineSpacing(0f, 1.15f) })
+        ckxText = Ui.text(c, "", 16f, Ui.TEXT)
+        ckx.addView(ckxText, Ui.lp(t = 10))
+        ckx.addView(Ui.button(c, tr("Synchroniser Cookomix"), Ui.Style.PRIMARY, Icon.Kind.SYNC, height = 58) { syncCookomix() },
+            Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))
+        ckx.addView(Ui.text(c, tr("La première fois, compter environ une heure (une page par seconde, pour ne pas surcharger le site)."),
+            14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        ckx.addView(toggle(tr("Inclure les recettes adaptées"), a.prefs.cookomixAdapted) { a.prefs.cookomixAdapted = it }, Ui.lp(t = 10))
+        ckx.addView(Ui.text(c, tr("Recettes dont un réglage a dû être modifié (vitesse en chauffe limitée à 3, pétrissage découpé en 2 min…). Elles portent le mot-clé « Adaptée MCC »."),
+            14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        ckx.addView(toggle(tr("Synchro Cookomix chaque nuit"), a.prefs.cookomixAutoSync) { a.prefs.cookomixAutoSync = it }, Ui.lp(t = 10))
+        ckxAccount = Ui.vertical(c)
+        ckx.addView(ckxAccount, Ui.lp(t = 14))
+        renderCookomixAccount()
+        refreshCookomix()
 
         // ---- Mises à jour
         val updates = section(left, tr("Mises à jour"), Icon.Kind.INFO)
@@ -369,6 +392,81 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
                 settingTime = false
                 refreshTime(if (r.ok) null else r.message)
                 if (r.ok) a.toast(r.message, Ui.OK)
+            }
+        }.start()
+    }
+
+    private fun refreshCookomix() {
+        val last = a.prefs.cookomixLastResult
+        ckxText.text = if (last.isEmpty()) tr("Jamais synchronisé") else tr("Dernière synchro le %s", last)
+    }
+
+    private fun syncCookomix() {
+        if (ckxBusy || CookomixSync.isRunning) return
+        ckxBusy = true
+        ckxText.text = tr("Synchronisation Cookomix en cours…")
+        Thread {
+            val r = CookomixSync(a, a.prefs, a.app.recipes, a.app.log).sync { msg -> view.post { ckxText.text = msg } }
+            view.post {
+                ckxBusy = false
+                if (r.ok) a.prefs.cookomixAutoSync = true
+                refreshCookomix()
+                refreshSync()
+                a.toast(r.message, if (r.ok) Ui.OK else Ui.WARN)
+            }
+        }.start()
+    }
+
+    /** Compte Cookomix : formulaire email + mot de passe, ou compte connecté. */
+    private fun renderCookomixAccount() {
+        ckxAccount.removeAllViews()
+        ckxAccount.addView(Ui.text(c, tr("Compte Cookomix"), 18f, Ui.TEXT, Ui.MEDIUM))
+        if (a.prefs.cookomixToken.isNotEmpty()) {
+            ckxAccount.addView(Ui.text(c, tr("Connecté : %s", a.prefs.cookomixName), 16f, Ui.TEXT2), Ui.lp(t = 6))
+            val row = Ui.horizontal(c)
+            row.addView(Ui.button(c, tr("Importer mes favoris"), Ui.Style.SECONDARY, height = 52) { importCookomixFavorites() }, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
+            row.addView(Ui.button(c, tr("Se déconnecter"), Ui.Style.GHOST, height = 52) {
+                CookomixSync.logout(a.prefs)
+                renderCookomixAccount()
+            })
+            ckxAccount.addView(row, Ui.lp(t = 10))
+            return
+        }
+        ckxAccount.addView(Ui.text(c, tr("Facultatif : sert à retrouver les recettes de votre carnet Cookomix dans les favoris. Le mot de passe n'est pas enregistré, seul un jeton de connexion l'est."),
+            14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        val email = field("", tr("Email ou pseudo")).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        }
+        val password = field("", tr("Mot de passe")).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        ckxAccount.addView(email, Ui.lp(Ui.MATCH, Ui.u(58), t = 10))
+        ckxAccount.addView(password, Ui.lp(Ui.MATCH, Ui.u(58), t = 10))
+        ckxAccount.addView(Ui.button(c, tr("Se connecter"), Ui.Style.PRIMARY, Icon.Kind.CHECK, height = 52) {
+            if (ckxBusy) return@button
+            ckxBusy = true
+            val user = email.text.toString()
+            val pwd = password.text.toString()
+            Thread {
+                val (ok, msg) = CookomixSync.login(a.prefs, user, pwd)
+                view.post {
+                    ckxBusy = false
+                    password.setText("")
+                    a.toast(msg, if (ok) Ui.OK else Ui.WARN)
+                    if (ok) renderCookomixAccount()
+                }
+            }.start()
+        }, Ui.lp(Ui.WRAP, Ui.WRAP, t = 10))
+    }
+
+    private fun importCookomixFavorites() {
+        if (ckxBusy) return
+        ckxBusy = true
+        Thread {
+            val r = CookomixSync(a, a.prefs, a.app.recipes, a.app.log).importFavorites()
+            view.post {
+                ckxBusy = false
+                a.toast(r.message, if (r.ok) Ui.OK else Ui.WARN)
             }
         }.start()
     }

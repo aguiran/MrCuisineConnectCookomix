@@ -189,4 +189,51 @@ class Prefs(context: Context) {
         set(v) {
             p.edit().putInt("guidedStep", v).commit()
         }
+
+    // ---- Cookomix
+
+    /** Synchro nocturne des recettes Cookomix (désactivée tant que l'utilisateur ne l'a pas lancée une fois). */
+    var cookomixAutoSync: Boolean
+        get() = p.getBoolean("cookomixAutoSync", false)
+        set(v) {
+            p.edit().putBoolean("cookomixAutoSync", v).commit()
+        }
+
+    /** Importer aussi les recettes dont un réglage a dû être adapté au MCC. */
+    var cookomixAdapted: Boolean
+        get() = p.getBoolean("cookomixAdapted", true)
+        set(v) {
+            p.edit().putBoolean("cookomixAdapted", v).commit()
+        }
+
+    var cookomixLastResult: String
+        get() = p.getString("cookomixLastResult", "") ?: ""
+        set(v) {
+            p.edit().putString("cookomixLastResult", v).commit()
+        }
+
+    var cookomixLastSyncMs: Long
+        get() = p.getLong("cookomixLastSyncMs", 0)
+        set(v) {
+            p.edit().putLong("cookomixLastSyncMs", v).commit()
+        }
+
+    /** Compte Cookomix : jeton de connexion (le mot de passe n'est jamais enregistré). */
+    var cookomixToken: String
+        get() = p.getString("cookomixToken", "") ?: ""
+        set(v) {
+            p.edit().putString("cookomixToken", v).commit()
+        }
+
+    var cookomixLogin: String
+        get() = p.getString("cookomixLogin", "") ?: ""
+        set(v) {
+            p.edit().putString("cookomixLogin", v).commit()
+        }
+
+    var cookomixName: String
+        get() = p.getString("cookomixName", "") ?: ""
+        set(v) {
+            p.edit().putString("cookomixName", v).commit()
+        }
 }
