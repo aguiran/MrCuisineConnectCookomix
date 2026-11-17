@@ -1,12 +1,10 @@
-# Tests et compilation à chaque pull request vers main (et à chaque push sur une branche de travail).
+# Tests et compilation à chaque pull request vers main (et à la demande).
 # Une PR ne se fusionne que si ce workflow est vert (protection de la branche main).
 name: CI
 
 on:
   pull_request:
     branches: [main]
-  push:
-    branches-ignore: [main]
   workflow_dispatch:
 
 concurrency:
