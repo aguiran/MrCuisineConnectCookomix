@@ -81,7 +81,7 @@ TWRP_SHA="fc9ac999fc3b0a6c0cb563f39359084a6fcc211aeb42e7b754990afa4b543d3e"
 TWRP_SIZE=11452416
 SCATTER_SHA="13b8260dba9e4efba874c09e35803af43cc69556ba0f1937226240b0ab318364"
 TOOLS_URL="https://dl.google.com/android/repository/platform-tools-latest-darwin.zip"
-RELEASES_API="https://api.github.com/repos/Wuki60/MrCuisineVibeConnect/releases/latest"
+RELEASES_API="https://api.github.com/repos/aguiran/MrCuisineConnectCookomix/releases/latest"
 # mtkclient: a tag, checked against its commit (a moved tag is refused).
 MTK_URL="https://github.com/bkerler/mtkclient"
 MTK_TAG="v2.1.4.1"

@@ -8,7 +8,7 @@
 # credential already stored for git (Git Credential Manager). It is never printed.
 param(
     [Parameter(Mandatory = $true)][string]$Apk,
-    [string]$Repo = "Wuki60/MrCuisineVibeConnect",
+    [string]$Repo = "aguiran/MrCuisineConnectCookomix",
     [switch]$RepoInfo
 )
 $ErrorActionPreference = "Stop"
