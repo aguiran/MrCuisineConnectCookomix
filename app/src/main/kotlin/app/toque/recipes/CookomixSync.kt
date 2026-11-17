@@ -126,7 +126,11 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
                 }
                 index[e.slug] = Mark(e.lastmod, status, r?.id ?: previousId).toString()
                 touched += e.slug
-                if (r != null && (status == OK || (status == ADAPTED && withAdapted))) batch += r
+                if (r != null && (status == OK || (status == ADAPTED && withAdapted))) {
+                    batch += r
+                    // Photo tout de suite (et non en fin de synchro) : la recette s'affiche avec elle.
+                    photoNow(r.image)
+                }
                 when (status) {
                     INCOMPATIBLE -> log.write("cookomix", "${e.slug} : ${res.reasons.joinToString("; ")}")
                     UNREADABLE -> {
@@ -232,6 +236,17 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         }
         batch.clear()
         writeIndex(index)
+    }
+
+    /** Photo d'une recette qui vient d'être lue ; un échec est rattrapé en fin de synchro. */
+    private fun photoNow(url: String) {
+        if (!url.startsWith("http") || repo.imageFile(url) != null) return
+        try {
+            fetcher.savePhoto(url)
+        } catch (e: IOException) {
+            log.write("cookomix", "photo $url : ${e.message}")
+        }
+        pause(300)
     }
 
     private fun photos(ids: Collection<String>, progress: (String) -> Unit) {
