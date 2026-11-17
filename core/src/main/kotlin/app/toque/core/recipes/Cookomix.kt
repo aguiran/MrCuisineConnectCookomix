@@ -21,7 +21,11 @@ import app.toque.core.protocol.Mcc
  *
  * Les recettes sont écrites pour le Thermomix : chaque réglage est traduit vers le MCC et la
  * recette reçoit un verdict ([Compat]) : compatible telle quelle, adaptée (un réglage a dû être
- * modifié pour respecter les limites du MCC) ou incompatible (non importée).
+ * modifié pour respecter les limites du MCC) ou incompatible (non importée). Une page dont la
+ * structure n'est pas celle attendue est « illisible » ([Compat.UNREADABLE]) : ce n'est pas un
+ * verdict sur la recette, la synchro la garde telle quelle et réessaiera.
+ *
+ * Les échecs de synchro ont un code documenté ([Error], docs/COOKOMIX-ERREURS.md).
  */
 object Cookomix {
     const val SITE = "https://www.cookomix.com"
@@ -41,7 +45,84 @@ object Cookomix {
     private const val MAX_SPEED_HEATED = 3
     private const val MAX_SPEED_REVERSE = 3
 
-    enum class Compat { OK, ADAPTED, INCOMPATIBLE }
+    /** Verdict d'une page : UNREADABLE = format inattendu (site changé ?), pas une recette incompatible. */
+    enum class Compat { OK, ADAPTED, INCOMPATIBLE, UNREADABLE }
+
+    // ------------------------------------------------------------------ erreurs
+
+    /** Codes d'erreur affichés à l'utilisateur et décrits dans docs/COOKOMIX-ERREURS.md. */
+    enum class Error(val code: String) {
+        NETWORK("CKX-01"),
+        HTTP("CKX-02"),
+        LIST_UNREADABLE("CKX-03"),
+        LIST_SHRUNK("CKX-04"),
+        PAGES_UNREADABLE("CKX-05"),
+        TOO_MANY_INCOMPATIBLE("CKX-06"),
+        LOGIN_REFUSED("CKX-07"),
+        LOGIN_UNAVAILABLE("CKX-08"),
+        COOKBOOK_UNREADABLE("CKX-09"),
+        INTERNAL("CKX-10");
+
+        /** Message affiché : code, cause, et ce qui arrive aux recettes déjà enregistrées. */
+        fun message(detail: String = ""): String {
+            val text = when (this) {
+                NETWORK -> tr("cookomix.com injoignable")
+                HTTP -> tr("cookomix.com refuse ou n'arrive pas à répondre")
+                LIST_UNREADABLE -> tr("liste des recettes illisible (le site a peut-être changé)")
+                LIST_SHRUNK -> tr("liste des recettes anormalement courte")
+                PAGES_UNREADABLE -> tr("pages de recettes illisibles (le site a peut-être changé de format)")
+                TOO_MANY_INCOMPATIBLE -> tr("trop de recettes refusées d'un coup (le format des réglages a peut-être changé)")
+                LOGIN_REFUSED -> tr("connexion refusée")
+                LOGIN_UNAVAILABLE -> tr("service de connexion Cookomix indisponible ou modifié")
+                COOKBOOK_UNREADABLE -> tr("carnet de recettes illisible")
+                INTERNAL -> tr("erreur inattendue")
+            }
+            return "$code : $text" + if (detail.isBlank()) "" else " ($detail)"
+        }
+    }
+
+    // ------------------------------------------------------------------ coupe-circuits
+
+    /**
+     * Liste du site suspecte : vide, ou moins de la moitié des recettes connues (page de maintenance,
+     * sitemap tronqué…). La synchro s'arrête alors sans rien supprimer.
+     */
+    fun listLooksWrong(known: Int, now: Int): Boolean = now == 0 || (known >= 100 && now * 2 < known)
+
+    /**
+     * Surveille les pages traitées pendant une synchro. Normalement aucune page n'est illisible et
+     * presque aucune recette n'est incompatible : au-delà de ces seuils, le site a sans doute changé
+     * et continuer ferait disparaître des recettes. [verdict] dit quand s'arrêter.
+     */
+    class Breaker(
+        private val minPages: Int = 20,
+        private val unreadableInARow: Int = 10,
+        private val unreadablePercent: Int = 30,
+        private val incompatiblePercent: Int = 60,
+    ) {
+        var pages = 0
+            private set
+        private var unreadable = 0
+        private var incompatible = 0
+        private var row = 0
+
+        fun record(c: Compat) {
+            pages++
+            if (c == Compat.UNREADABLE) {
+                unreadable++
+                row++
+            } else row = 0
+            if (c == Compat.INCOMPATIBLE) incompatible++
+        }
+
+        fun verdict(): Error? = when {
+            row >= unreadableInARow -> Error.PAGES_UNREADABLE
+            pages < minPages -> null
+            unreadable * 100 >= pages * unreadablePercent -> Error.PAGES_UNREADABLE
+            incompatible * 100 >= pages * incompatiblePercent -> Error.TOO_MANY_INCOMPATIBLE
+            else -> null
+        }
+    }
 
     // ------------------------------------------------------------------ sitemaps
 
@@ -70,15 +151,28 @@ object Cookomix {
 
     class Result(val recipe: Recipe?, val compat: Compat, val reasons: List<String>)
 
-    /** Page HTML d'une recette → recette Toque et verdict de compatibilité. */
-    fun parsePage(html: String, url: String): Result {
-        val ld = jsonLdRecipe(html) ?: return Result(null, Compat.INCOMPATIBLE, listOf(tr("page sans recette")))
-        val sbs = stepByStep(html) ?: return Result(null, Compat.INCOMPATIBLE, listOf(tr("pas de pas-à-pas")))
+    /** Page HTML d'une recette → recette Toque et verdict de compatibilité. Ne lève jamais d'exception. */
+    fun parsePage(html: String, url: String): Result = try {
+        parsePageOrThrow(html, url)
+    } catch (e: Exception) {
+        unreadable(tr("structure inattendue : %s", e.javaClass.simpleName))
+    }
+
+    private fun unreadable(reason: String) = Result(null, Compat.UNREADABLE, listOf(reason))
+
+    private fun parsePageOrThrow(html: String, url: String): Result {
+        val ld = jsonLdRecipe(html) ?: return unreadable(tr("page sans recette"))
+        val sbs = stepByStep(html) ?: return unreadable(tr("pas de pas-à-pas"))
         val title = cleanTitle(McOnline.plain(sbs.str("title")) ?: McOnline.plain(ld.str("name")).orEmpty())
-        if (title.isEmpty()) return Result(null, Compat.INCOMPATIBLE, listOf(tr("recette sans titre")))
+        if (title.isEmpty()) return unreadable(tr("recette sans titre"))
+        val rawSteps = sbs["steps"].list().map { it.obj() }
+        if (rawSteps.isEmpty() || rawSteps.any { it.str("action").isNullOrEmpty() }) return unreadable(tr("étapes au format inattendu"))
+        // Un réglage robot doit avoir sa durée et sa vitesse : sinon c'est le format qui a changé.
+        if (rawSteps.any { it.str("action") == "mix" && (it["mix_duration"] == null || it["mix_speed"] == null) })
+            return unreadable(tr("réglages au format inattendu"))
 
         val conv = Converter()
-        val steps = conv.convert(sbs["steps"].list().map { it.obj() })
+        val steps = conv.convert(rawSteps)
         if (conv.compat == Compat.INCOMPATIBLE) return Result(null, Compat.INCOMPATIBLE, conv.reasons)
         if (steps.none { it.machine != null }) return Result(null, Compat.INCOMPATIBLE, listOf(tr("aucun réglage robot")))
 
@@ -480,6 +574,17 @@ object Cookomix {
     fun tokenBody(user: String, password: String): String =
         Json.write(linkedMapOf("username" to user.trim(), "password" to password))
 
+    class Login(val account: Account?, val error: Error?, val detail: String)
+
+    /** Réponse de [TOKEN_URL] (et son code HTTP) : compte, ou erreur codée. */
+    fun parseLogin(json: String, httpCode: Int): Login {
+        val (account, detail) = parseToken(json)
+        if (account != null) return Login(account, null, "")
+        val refused = httpCode == 403 || httpCode == 401 ||
+            Regex("incorrect_password|invalid_email|invalid_username|empty_").containsMatchIn(json)
+        return Login(null, if (refused) Error.LOGIN_REFUSED else Error.LOGIN_UNAVAILABLE, detail)
+    }
+
     /** Réponse de [TOKEN_URL] : compte, ou message d'erreur du site. */
     fun parseToken(json: String): Pair<Account?, String> {
         val m = try {
@@ -509,4 +614,7 @@ object Cookomix {
     fun authHeader(token: String): Map<String, String> = mapOf("Authorization" to "Bearer $token")
 
     fun memberCookbookUrl(login: String): String = "$SITE/membres/$login/cookbook/"
+
+    /** La page reçue est-elle bien un carnet de recettes Cookomix (et non une page d'erreur) ? */
+    fun looksLikeCookbook(html: String): Boolean = html.contains("cookbook") && html.contains("cookomix")
 }

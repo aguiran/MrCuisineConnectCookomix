@@ -23,6 +23,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * seules les pages nouvelles ou modifiées sont téléchargées et converties ([Cookomix.parsePage]).
  * Les recettes incompatibles sont mémorisées pour ne pas être retéléchargées tant qu'elles ne
  * changent pas. Requêtes espacées (plus d'une seconde) ; reprend où elle s'est arrêtée.
+ *
+ * Panne ou changement du site : la synchro s'arrête avec un code d'erreur ([Cookomix.Error],
+ * docs/COOKOMIX-ERREURS.md) et ne supprime alors aucune recette. Une page illisible n'efface
+ * jamais la version déjà enregistrée : elle sera relue à la synchro suivante.
  */
 class CookomixSync(private val context: Context, private val prefs: Prefs, private val repo: RecipeRepo, private val log: Logbook) {
     private val version = try {
@@ -51,44 +55,64 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
             return finish(run(progress))
         } catch (e: Exception) {
             log.crash("cookomix", e)
-            return finish(LidlSync.Report(false, tr("Synchronisation Cookomix impossible : %s", e.message ?: e.toString())))
+            return finish(failure(Cookomix.Error.INTERNAL, e.message ?: e.javaClass.simpleName))
         } finally {
             running.set(false)
         }
     }
 
+    /** Échec codé : les recettes déjà enregistrées restent, et le message le dit. */
+    private fun failure(error: Cookomix.Error, detail: String = ""): LidlSync.Report {
+        log.write("cookomix", "${error.code} $detail")
+        return LidlSync.Report(false, tr("Recettes Cookomix non mises à jour, %s. Les recettes déjà enregistrées restent disponibles.", error.message(detail)))
+    }
+
+    private fun networkFailure(e: IOException): LidlSync.Report =
+        if (e is HttpStatusException) failure(Cookomix.Error.HTTP, tr("réponse %d du serveur", e.code))
+        else failure(Cookomix.Error.NETWORK, e.message ?: e.javaClass.simpleName)
+
     private fun run(progress: (String) -> Unit): LidlSync.Report {
         val withAdapted = prefs.cookomixAdapted
         val index = HashMap(readIndex())
+        val before = HashMap(index)
 
-        // 1. Liste des recettes (sitemaps).
+        // 1. Liste des recettes (sitemaps). Liste vide ou anormalement courte : on s'arrête sans rien toucher.
         progress(tr("Liste des recettes Cookomix…"))
         val entries = ArrayList<Cookomix.Entry>()
         try {
             val maps = Cookomix.recipeSitemaps(text(Cookomix.SITEMAP_INDEX))
-            if (maps.isEmpty()) return LidlSync.Report(false, tr("Liste des recettes Cookomix introuvable"))
+            if (maps.isEmpty()) return failure(Cookomix.Error.LIST_UNREADABLE, tr("aucun sitemap de recettes"))
             for ((i, url) in maps.withIndex()) {
                 progress(tr("Liste des recettes Cookomix… %d / %d", i + 1, maps.size))
                 entries += Cookomix.parseSitemap(text(url))
                 pause(600)
             }
         } catch (e: IOException) {
-            return LidlSync.Report(false, tr("cookomix.com injoignable : %s", e.message ?: e.toString()))
+            return networkFailure(e)
         }
-        if (entries.isEmpty()) return LidlSync.Report(false, tr("Aucune recette reçue de cookomix.com"))
+        if (entries.isEmpty()) return failure(Cookomix.Error.LIST_UNREADABLE, tr("aucune recette dans les sitemaps"))
+        if (Cookomix.listLooksWrong(index.size, entries.size))
+            return failure(Cookomix.Error.LIST_SHRUNK, tr("%d recettes au lieu de %d", entries.size, index.size))
 
         // 2. Pages nouvelles ou modifiées (ou compatibles mais absentes du catalogue).
         val present = repo.ids()
-        fun wanted(m: Mark) = m.status == OK || (m.status == ADAPTED && withAdapted)
+        // Page illisible ou en échec : on garde la version déjà enregistrée (identifiant conservé).
+        fun wanted(m: Mark) = m.status == OK || (m.status == ADAPTED && withAdapted) ||
+            ((m.status == UNREADABLE || m.status == ERROR) && m.id.isNotEmpty())
         val todo = entries.filter { e ->
             val m = Mark.of(index[e.slug])
-            m == null || m.lastmod != e.lastmod || m.status == ERROR || (wanted(m) && m.id !in present)
+            m == null || m.lastmod != e.lastmod || m.status == ERROR || m.status == UNREADABLE ||
+                ((m.status == OK || m.status == ADAPTED) && wanted(m) && m.id !in present)
         }
         val batch = ArrayList<Recipe>()
+        val breaker = Cookomix.Breaker()
+        val touched = ArrayList<String>()
         var failures = 0
+        var unreadable = 0
         var inARow = 0
         for ((i, e) in todo.withIndex()) {
             progress(tr("Recettes Cookomix : %d / %d", i + 1, todo.size))
+            val previousId = Mark.of(index[e.slug])?.id.orEmpty()
             try {
                 val res = Cookomix.parsePage(text(e.url), e.url)
                 val r = res.recipe
@@ -96,20 +120,41 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
                     Cookomix.Compat.OK -> OK
                     Cookomix.Compat.ADAPTED -> ADAPTED
                     Cookomix.Compat.INCOMPATIBLE -> INCOMPATIBLE
+                    Cookomix.Compat.UNREADABLE -> UNREADABLE
                 }
-                index[e.slug] = Mark(e.lastmod, status, r?.id ?: "").toString()
+                index[e.slug] = Mark(e.lastmod, status, r?.id ?: previousId).toString()
+                touched += e.slug
                 if (r != null && (status == OK || (status == ADAPTED && withAdapted))) batch += r
-                if (status == INCOMPATIBLE) log.write("cookomix", "${e.slug} : ${res.reasons.joinToString("; ")}")
+                when (status) {
+                    INCOMPATIBLE -> log.write("cookomix", "${e.slug} : ${res.reasons.joinToString("; ")}")
+                    UNREADABLE -> {
+                        unreadable++
+                        log.write("cookomix", "${Cookomix.Error.PAGES_UNREADABLE.code} ${e.slug} : ${res.reasons.joinToString("; ")}")
+                    }
+                }
+                breaker.record(res.compat)
                 inARow = 0
             } catch (ex: IOException) {
                 failures++
                 inARow++
-                index[e.slug] = Mark(e.lastmod, ERROR, "").toString()
+                index[e.slug] = Mark(e.lastmod, ERROR, previousId).toString()
                 log.write("cookomix", "${e.slug} : ${ex.message}")
                 if (inARow >= 5) {
                     save(batch, index)
-                    return LidlSync.Report(false, tr("cookomix.com injoignable : %s", ex.message ?: ex.toString()))
+                    return networkFailure(ex)
                 }
+            }
+            // Le site semble avoir changé : on annule les verdicts négatifs de cette synchro et on s'arrête.
+            breaker.verdict()?.let { error ->
+                for (slug in touched) {
+                    val status = Mark.of(index[slug])?.status
+                    if (status == INCOMPATIBLE || status == UNREADABLE) {
+                        val old = before[slug]
+                        if (old == null) index.remove(slug) else index[slug] = old
+                    }
+                }
+                save(batch, index)
+                return failure(error, tr("%d pages lues", breaker.pages))
             }
             if (batch.size >= 25) save(batch, index)
             pause(PAGE_PAUSE_MS)
@@ -131,7 +176,8 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         val ok = marks.count { it.status == OK }
         val adapted = marks.count { it.status == ADAPTED }
         val ko = marks.count { it.status == INCOMPATIBLE }
-        val note = if (failures > 0) " " + tr("(%d en échec, réessayées à la prochaine synchro)", failures) else ""
+        var note = if (failures > 0) " " + tr("(%d en échec, réessayées à la prochaine synchro)", failures) else ""
+        if (unreadable > 0) note += " " + tr("(%d illisibles, code %s, réessayées à la prochaine synchro)", unreadable, Cookomix.Error.PAGES_UNREADABLE.code)
         return LidlSync.Report(true, tr("Cookomix : %d compatibles, %d adaptées, %d incompatibles", ok, adapted, ko) + note, keep.size)
     }
 
@@ -145,7 +191,12 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         val html = try {
             text(Cookomix.memberCookbookUrl(login), Cookomix.authHeader(prefs.cookomixToken))
         } catch (e: IOException) {
-            return LidlSync.Report(false, tr("cookomix.com injoignable : %s", e.message ?: e.toString()))
+            return networkFailure(e)
+        }
+        if (!Cookomix.looksLikeCookbook(html)) {
+            val msg = Cookomix.Error.COOKBOOK_UNREADABLE.message()
+            log.write("cookomix", msg)
+            return LidlSync.Report(false, msg)
         }
         val slugs = Cookomix.recipeSlugs(html)
         val index = readIndex()
@@ -228,6 +279,7 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         private const val ADAPTED = "adaptee"
         private const val INCOMPATIBLE = "incompatible"
         private const val ERROR = "erreur"
+        private const val UNREADABLE = "illisible"
         /** Une page toutes les ~1,2 s : environ 50 minutes pour tout le site la première fois. */
         private const val PAGE_PAUSE_MS = 1_200L
         private val running = AtomicBoolean(false)
@@ -240,10 +292,11 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
             val raw = try {
                 Http.postJson(Cookomix.TOKEN_URL, Cookomix.tokenBody(user, password))
             } catch (e: IOException) {
-                return false to tr("cookomix.com injoignable : %s", e.message ?: e.toString())
+                return false to Cookomix.Error.NETWORK.message(e.message ?: e.javaClass.simpleName)
             }
-            val (account, error) = Cookomix.parseToken(raw.body)
-            if (account == null) return false to tr("Connexion refusée : %s", error.ifEmpty { tr("réponse %d du serveur", raw.code) })
+            val login = Cookomix.parseLogin(raw.body, raw.code)
+            val account = login.account
+                ?: return false to (login.error ?: Cookomix.Error.LOGIN_UNAVAILABLE).message(login.detail.ifEmpty { tr("réponse %d du serveur", raw.code) })
             prefs.cookomixToken = account.token
             prefs.cookomixLogin = account.login
             prefs.cookomixName = account.displayName.ifEmpty { account.login.ifEmpty { account.email } }

@@ -10,6 +10,9 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
+/** Le serveur a répondu, mais pas 200 (à distinguer d'un serveur injoignable). */
+class HttpStatusException(val code: Int) : IOException(tr("réponse %d du serveur", code))
+
 /** Téléchargements des synchros (reprises si le serveur sature) et photos réduites pour l'écran du robot. */
 class Fetcher(private val version: String, private val repo: RecipeRepo) {
     /** Photo réduite (800 px de large au plus), enregistrée sous le nom de fichier de l'URL. */
@@ -50,7 +53,7 @@ class Fetcher(private val version: String, private val repo: RecipeRepo) {
                     pause(5_000L * attempt)
                     continue
                 }
-                if (code != 200) throw IOException(tr("réponse %d du serveur", code))
+                if (code != 200) throw HttpStatusException(code)
                 c.inputStream.use { input ->
                     val out = ByteArrayOutputStream()
                     val buf = ByteArray(16 * 1024)

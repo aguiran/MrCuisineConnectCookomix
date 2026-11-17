@@ -36,6 +36,9 @@
 > (une page par seconde), puis seules les recettes modifiées sont retéléchargées. Le **compte
 > Cookomix** (email ou pseudo + mot de passe, facultatif) sert à importer les recettes du carnet
 > dans les favoris ; seul un jeton de connexion est enregistré, jamais le mot de passe.
+> Si le site est en panne ou change de format, la synchro s'arrête avec un code d'erreur
+> (CKX-01 à CKX-10, décrits dans [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md)) sans
+> supprimer aucune recette déjà enregistrée.
 > Les recettes restent la propriété de Cookomix et de leurs auteurs : elles sont téléchargées pour
 > un usage personnel par chaque robot et ne sont pas redistribuées par ce dépôt.
 

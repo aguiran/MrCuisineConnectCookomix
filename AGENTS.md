@@ -207,7 +207,9 @@ and without macFUSE the FUSE package stops mtkclient from starting
 
 ## After the install
 
-- Updates: Toque › Settings › Updates installs new releases from the original repository.
+- Updates: Toque › Settings › Updates installs new releases from this fork.
+- Cookomix recipes: Settings › Cookomix recipes › Sync (cookomix.com, about an hour the first time).
+  Error codes CKX-01 to CKX-10: [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md).
 - Recipes: Settings › Lidl recipes › Sync (monsieur-cuisine.com, no account). Nightly re-sync.
 - Clock: set automatically (time zone from the Internet connection); Settings › Date and time.
 - To work on the robot later over Wi-Fi: `adb connect <robot IP>:5555`.

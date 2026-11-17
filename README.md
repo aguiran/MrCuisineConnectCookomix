@@ -7,7 +7,9 @@
 > signature as the original, so it installs over it). Cookomix has no public API, so Toque reads
 > the site's public pages from the robot (sitemaps + each page's structured step-by-step) and
 > converts every Thermomix setting for the MCC; see [README.fr.md](README.fr.md) for the
-> conversion table. Recipes stay the property of Cookomix and their authors: each robot downloads
+> conversion table. If the site is down or changes its format, the sync stops with a documented
+> error code ([docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md), CKX-01 to CKX-10) and never
+> deletes saved recipes. Recipes stay the property of Cookomix and their authors: each robot downloads
 > them for personal use and this repository does not redistribute them.
 
 ## Original project: MrCuisineVibeConnect

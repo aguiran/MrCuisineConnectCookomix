@@ -120,4 +120,70 @@ class CookomixTest {
         assertEquals(30, Cookomix.minutes("PT30M"))
         assertEquals(80, Cookomix.minutes("PT1H20M"))
     }
+
+    @Test fun unreadablePagesAreNotIncompatible() {
+        val page = fixture("cookomix-page.html")
+        // Page de maintenance, pas-à-pas disparu, champs renommés, JSON cassé : « illisible », jamais d'exception.
+        for (html in listOf(
+            "<html><body>Site en maintenance</body></html>",
+            page.replace("var stepbystep", "var etapes"),
+            page.replace("\"mix_speed\"", "\"speed\""),
+            page.replace("\"action\":\"mix\"", "\"type\":\"mix\""),
+            page.replace("var stepbystep ={", "var stepbystep ={{"),
+            "",
+        )) {
+            val res = Cookomix.parsePage(html, "https://www.cookomix.com/recettes/x/")
+            assertEquals(html.take(60), Cookomix.Compat.UNREADABLE, res.compat)
+            assertNull(res.recipe)
+        }
+    }
+
+    @Test fun listSanity() {
+        assertTrue(Cookomix.listLooksWrong(0, 0))
+        assertTrue(Cookomix.listLooksWrong(2437, 0))
+        assertTrue(Cookomix.listLooksWrong(2437, 1000))
+        assertTrue(!Cookomix.listLooksWrong(2437, 2400))
+        assertTrue(!Cookomix.listLooksWrong(0, 2437))
+        assertTrue(!Cookomix.listLooksWrong(50, 10))
+    }
+
+    @Test fun breaker() {
+        // Fonctionnement normal : quelques incompatibles, aucune alerte.
+        val ok = Cookomix.Breaker()
+        repeat(100) { ok.record(if (it % 10 == 0) Cookomix.Compat.INCOMPATIBLE else Cookomix.Compat.OK) }
+        assertNull(ok.verdict())
+        // 10 pages illisibles de suite : arrêt immédiat.
+        val row = Cookomix.Breaker()
+        repeat(9) { row.record(Cookomix.Compat.UNREADABLE) }
+        assertNull(row.verdict())
+        row.record(Cookomix.Compat.UNREADABLE)
+        assertEquals(Cookomix.Error.PAGES_UNREADABLE, row.verdict())
+        // Un tiers de pages illisibles, dispersées.
+        val spread = Cookomix.Breaker()
+        repeat(30) { spread.record(if (it % 3 == 0) Cookomix.Compat.UNREADABLE else Cookomix.Compat.OK) }
+        assertEquals(Cookomix.Error.PAGES_UNREADABLE, spread.verdict())
+        // Presque tout refusé : format des réglages changé.
+        val refused = Cookomix.Breaker()
+        repeat(20) { refused.record(if (it < 15) Cookomix.Compat.INCOMPATIBLE else Cookomix.Compat.OK) }
+        assertEquals(Cookomix.Error.TOO_MANY_INCOMPATIBLE, refused.verdict())
+    }
+
+    @Test fun errorCodes() {
+        val codes = Cookomix.Error.values().map { it.code }
+        assertEquals(codes.distinct(), codes)
+        assertTrue(codes.all { Regex("CKX-\\d\\d").matches(it) })
+        assertTrue(Cookomix.Error.PAGES_UNREADABLE.message("12 pages lues").startsWith("CKX-05 : "))
+        // La doc décrit chaque code.
+        val doc = java.io.File("../docs/COOKOMIX-ERREURS.md").readText()
+        for (c in codes) assertTrue("$c absent de docs/COOKOMIX-ERREURS.md", doc.contains("| $c |"))
+    }
+
+    @Test fun login() {
+        val ok = Cookomix.parseLogin("""{"token":"t","user_nicename":"essai"}""", 200)
+        assertNotNull(ok.account)
+        assertNull(ok.error)
+        assertEquals(Cookomix.Error.LOGIN_REFUSED, Cookomix.parseLogin("""{"code":"[jwt_auth] incorrect_password","message":"x"}""", 403).error)
+        assertEquals(Cookomix.Error.LOGIN_UNAVAILABLE, Cookomix.parseLogin("<html>404</html>", 404).error)
+        assertEquals(Cookomix.Error.LOGIN_UNAVAILABLE, Cookomix.parseLogin("""{"code":"jwt_auth_bad_config"}""", 500).error)
+    }
 }
