@@ -15,18 +15,20 @@
 >
 > | Thermomix | Monsieur Cuisine Connect |
 > |---|---|
-> | vitesse 0 / 0,5 / « cuillère » | vitesse 1 |
+> | vitesse cuillère (codée 0 par Cookomix, 40 tr/min) ou 0,5 | vitesse 1, la plus lente du MCC (les recettes Lidl mijotent aussi en vitesse 1 inverse) |
 > | vitesse décimale (3,5) | arrondie au-dessus (4) |
 > | température hors table (98 °C) | palier inférieur du MCC (95 °C), recette « adaptée » |
-> | Varoma avec le Varoma posé, vitesse ≤ 2 | programme Vapeur |
-> | Varoma sans le Varoma | 120 °C |
+> | Varoma (120 °C au plus sur le Thermomix) | 120 °C en manuel, même vitesse : le programme Vapeur du MCC arrête la lame et s'arrête à 60 min |
+> | « Rissoler » 120 °C vitesse 1 | 120 °C en manuel, vitesse 1 en continu (le programme Saisir du MCC ne tourne que par à-coups) |
 > | vitesse > 3 en chauffe ou en sens inverse | vitesse 3, recette « adaptée » |
 > | fouet (papillon) au-delà de la vitesse 4 | vitesse 4, recette « adaptée » |
 > | pétrin | programme Pétrir, découpé en tranches de 2 min |
 > | plus de 130 °C, mode inconnu | recette **incompatible**, non importée |
 >
-> Sur un échantillon de 71 recettes du site : 59 compatibles telles quelles, 12 adaptées,
-> 0 incompatible. Les recettes adaptées portent le mot-clé « Adaptée MCC » et expliquent dans
+> Sur 371 recettes du site tirées au hasard : 304 compatibles telles quelles, 67 adaptées,
+> 0 incompatible. Les limites du MCC appliquées viennent de sa notice (SKMC 1200) : 37 à 130 °C par
+> paliers de 5, vitesse 1 à 3 en chauffe et en sens inverse, 1 à 4 avec le fouet, 99 min jusqu'à la
+> vitesse 6 et 15 min au-delà. Les recettes adaptées portent le mot-clé « Adaptée MCC » et expliquent dans
 > leurs notes ce qui a changé ; le texte de l'étape rappelle le réglage Thermomix d'origine.
 > Comme pour les recettes Lidl, chaque réglage importé est à confirmer avant d'être lancé.
 >

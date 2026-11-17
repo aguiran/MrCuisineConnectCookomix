@@ -250,7 +250,6 @@ object Cookomix {
         /** Gestes sans réglage (couvercle, accessoire…) rattachés à l'étape robot suivante. */
         private val pending = ArrayList<String>()
         private var accessory = Accessory.BLADE
-        private var varoma = false
         private var preparation = ""
 
         fun adapted(reason: String) {
@@ -278,19 +277,14 @@ object Cookomix {
                     "add-accessory" -> {
                         when (s.str("addaccessory")?.lowercase()) {
                             "butterfly-whisk", "whisk", "papillon" -> accessory = Accessory.WHISK
-                            "varoma" -> varoma = true
                         }
                         flush()
                         if (desc.isNotEmpty()) out += Step(header + desc)
                     }
                     "remove-accessory" -> {
+                        // Le fouet retiré, la lame redevient l'accessoire (Varoma et panier n'y changent rien).
                         val d = desc.lowercase()
-                        if ("fouet" in d || "papillon" in d) accessory = Accessory.BLADE
-                        if ("vapeur" in d || "varoma" in d) varoma = false
-                        if ("fouet" !in d && "vapeur" !in d && "varoma" !in d) {
-                            accessory = Accessory.BLADE
-                            varoma = false
-                        }
+                        if ("fouet" in d || ("vapeur" !in d && "panier" !in d)) accessory = Accessory.BLADE
                         flush()
                         if (desc.isNotEmpty()) out += Step(header + desc)
                     }
@@ -379,16 +373,18 @@ object Cookomix {
                 incompatible(tr("vitesse « %s » sans équivalent", speedRaw))
                 return
             }
-            // Vitesse cuillère / 0,5 du Thermomix → vitesse 1, la plus lente du MCC.
+            // Vitesse cuillère (codée 0 par Cookomix, 40 tr/min sur le Thermomix) ou 0,5 → vitesse 1,
+            // la plus lente du MCC (0 l'arrête) ; les recettes Lidl mijotent aussi en vitesse 1 inverse.
             var speed = Math.ceil(speedF).toInt().coerceIn(1, 10)
 
             var tempC: Int
-            var steam = false
             when {
                 tempRaw.isEmpty() || tempRaw == "0" -> tempC = 0
+                // « Varoma » = 120 °C au plus sur le Thermomix, en gardant sa vitesse. On reste en manuel
+                // à 120 °C : le programme Vapeur du MCC arrête la lame et s'arrête à 60 min (notice SKMC 1200).
                 tempRaw == "varoma" -> {
                     tempC = 120
-                    if (varoma && speed <= 2) steam = true else changed = true
+                    changed = true
                 }
                 else -> {
                     val t = tempRaw.replace(',', '.').toDoubleOrNull()?.toInt()
@@ -409,11 +405,6 @@ object Cookomix {
                         changed = true
                     }
                 }
-            }
-
-            if (steam) {
-                splitDuration(seconds, MAX_MANUAL_S, text + original) { StepMachine(program = StepProgram.STEAM, seconds = it) }
-                return
             }
 
             if (tempC > 0 && speed > MAX_SPEED_HEATED) {
@@ -474,7 +465,11 @@ object Cookomix {
             temp.isNotEmpty() && temp != "0" -> add("$temp °C")
         }
         if (reverse) add("sens inverse")
-        add(if (speed.toDoubleOrNull() != null) "vitesse ${speed.replace('.', ',')}" else speed)
+        add(when {
+            speed == "0" -> "vitesse cuillère"
+            speed.toDoubleOrNull() != null -> "vitesse ${speed.replace('.', ',')}"
+            else -> speed
+        })
     }.joinToString(" / ")
 
     // ------------------------------------------------------------------ compte (JWT)

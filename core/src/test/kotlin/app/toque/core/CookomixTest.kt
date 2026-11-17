@@ -56,15 +56,20 @@ class CookomixTest {
         // 25 min 98 °C → 95 °C.
         assertEquals(95, machines[1].tempC)
         assertEquals(1500, machines[1].seconds)
+        assertEquals(1, machines[1].speed)
+        assertTrue(r.steps.single { it.machine === machines[1] }.text.endsWith("(Thermomix : 25 min / 98 °C / vitesse cuillère)"))
         // Vitesse 0,5 inverse → vitesse 1 inverse.
         assertEquals(1, machines[2].speed)
         assertTrue(machines[2].reverse)
         // Vitesse 6 en chauffe → 3.
         assertEquals(3, machines[3].speed)
         assertEquals(90, machines[3].tempC)
-        // Varoma posé + vitesse 1 → programme Vapeur.
-        assertEquals(StepProgram.STEAM, machines[4].program)
+        // Varoma posé + vitesse 1 → 120 °C en manuel, lame en vitesse 1 (le programme Vapeur l'arrêterait).
+        assertEquals(StepProgram.MANUAL, machines[4].program)
+        assertEquals(120 to 1, machines[4].tempC to machines[4].speed)
         assertEquals(900, machines[4].seconds)
+        // Vitesse cuillère : vitesse 1, et le texte ne dit jamais « vitesse 0 ».
+        assertTrue(r.steps.none { it.text.contains("vitesse 0") })
         // Pétrin 3 min 30 → 2 min + 1 min 30.
         assertEquals(listOf(StepProgram.KNEAD, StepProgram.KNEAD), machines.drop(5).take(2).map { it.program })
         assertEquals(listOf(120, 90), machines.drop(5).take(2).map { it.seconds })
