@@ -489,7 +489,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             val user = email.text.toString()
             val pwd = password.text.toString()
             Thread {
-                val (ok, msg) = CookomixSync.login(a.prefs, user, pwd)
+                val (ok, msg) = CookomixSync.login(a.prefs, a.app.log, user, pwd)
                 view.post {
                     ckxBusy = false
                     password.setText("")

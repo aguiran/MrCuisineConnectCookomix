@@ -335,13 +335,21 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
             private set
 
         /** Connexion par email (ou pseudo) et mot de passe : seul le jeton est gardé. Renvoie (ok, message). */
-        fun login(prefs: Prefs, user: String, password: String): Pair<Boolean, String> {
+        fun login(prefs: Prefs, log: Logbook, user: String, password: String): Pair<Boolean, String> {
             if (user.isBlank() || password.isEmpty()) return false to tr("Email et mot de passe requis")
             val raw = try {
                 Http.postJson(Cookomix.TOKEN_URL, Cookomix.tokenBody(user, password))
             } catch (e: IOException) {
+                log.write("cookomix", "connexion : réseau : $e")
                 return false to Cookomix.Error.NETWORK.message(e.message ?: e.javaClass.simpleName)
             }
+            // Diagnostic sans donnée personnelle : réponse du site et forme de la saisie (jamais l'email
+            // ni le mot de passe), pour repérer un espace en trop ou un identifiant mal reconnu.
+            val serverCode = Regex("\"code\"\\s*:\\s*\"([^\"]*)\"").find(raw.body)?.groupValues?.get(1)
+                ?: if (raw.body.contains("\"token\"")) "token" else raw.body.take(60).replace(Regex("\\s+"), " ")
+            log.write("cookomix", "connexion : HTTP ${raw.code}, réponse « $serverCode » ; identifiant de ${user.trim().length} car. " +
+                "(${if (user.contains('@')) "email" else "pseudo"}), mot de passe de ${password.length} car." +
+                if (password != password.trim()) ", avec espace au début ou à la fin" else "")
             val login = Cookomix.parseLogin(raw.body, raw.code)
             val account = login.account
                 ?: return false to (login.error ?: Cookomix.Error.LOGIN_UNAVAILABLE).message(login.detail.ifEmpty { tr("réponse %d du serveur", raw.code) })
