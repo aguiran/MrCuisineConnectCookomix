@@ -48,7 +48,6 @@ class ToqueApp : Application() {
             }
         }
         log.write("interface", "démarrage")
-        prefs.forgetCookomixAccount() // migration unique (0.7.1)
         TimeSync.start(this, prefs, log)
         resumeInterruptedSyncs()
     }
