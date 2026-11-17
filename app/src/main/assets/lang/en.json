@@ -1,5 +1,6 @@
 {
   "_name": "English",
+  "%d Lidl · %d Cookomix": "%d Lidl · %d Cookomix",
   "%d favoris": "%d favourites",
   "%d pages lues": "%d pages read",
   "%d pers.": "Serves %d",
@@ -253,6 +254,7 @@
   "Moteur en surchauffe : laissez refroidir": "Motor overheating: let it cool down",
   "Moyen": "Medium",
   "Mélanger": "Stir",
+  "Ne plus proposer de reprendre cette recette": "Stop offering to resume this recipe",
   "Non": "No",
   "Nouvelle version disponible : %s": "New version available: %s",
   "Opération incohérente avec le programme": "Operation does not match the program",
