@@ -137,9 +137,16 @@ class RecipesScreen(a: MainActivity, private val focusSearch: Boolean = false, f
         }
         val base = RecipeFilter()
         chip(tr("Toutes"), filter == base, base)
+        // Page de toutes les catégories (le bandeau ne montre que les plus fournies).
+        chips.addView(Ui.toggleChip(c, "☰ " + tr("Catégories…"), false) {
+            a.push(CategoriesScreen(a, filter.category) { cat -> filter = base.copy(category = cat) })
+        }, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
         chip(tr("Favoris"), filter.favoritesOnly, base.copy(favoritesOnly = true))
         chip(tr("30 min max"), filter.maxMinutes == 30, base.copy(maxMinutes = 30))
-        for (cat in a.app.recipes.index.categories.take(30)) chip(cat, filter.category == cat, base.copy(category = cat))
+        val top = a.app.recipes.index.categoryStats.take(20).map { it.name }
+        // Catégorie choisie dans la page des catégories : affichée en tête si elle n'est pas dans le bandeau.
+        val cats = if (filter.category.isNotEmpty() && filter.category !in top) listOf(filter.category) + top else top
+        for (cat in cats) chip(cat, filter.category == cat, base.copy(category = cat))
     }
 
     private fun search() {

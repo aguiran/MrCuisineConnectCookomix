@@ -136,6 +136,30 @@ class SearchIndex(recipes: List<Recipe>) {
         entries.map { it.category }.filter { it.isNotBlank() }.distinct().sortedBy { TextNorm.normalize(it) }
     }
 
+    /** Une catégorie et son nombre de recettes, par source (Lidl / Cookomix). */
+    class CategoryStat(val name: String, val lidl: Int, val cookomix: Int) {
+        val total: Int get() = lidl + cookomix
+    }
+
+    /** Catégories de la plus fournie à la moins fournie (à égalité : ordre alphabétique). */
+    val categoryStats: List<CategoryStat> by lazy {
+        val lidl = HashMap<String, Int>()
+        val ckx = HashMap<String, Int>()
+        for (e in entries) {
+            if (e.category.isBlank()) continue
+            val m = if (e.id.startsWith(Cookomix.ID_PREFIX)) ckx else lidl
+            m[e.category] = (m[e.category] ?: 0) + 1
+        }
+        (lidl.keys + ckx.keys).map { CategoryStat(it, lidl[it] ?: 0, ckx[it] ?: 0) }
+            .sortedWith(compareByDescending<CategoryStat> { it.total }.thenBy { TextNorm.normalize(it.name) })
+    }
+
+    /** Catégories dont le nom contient [query] (accents et casse ignorés). */
+    fun findCategories(query: String): List<CategoryStat> {
+        val q = TextNorm.normalize(query).trim()
+        return if (q.isEmpty()) categoryStats else categoryStats.filter { TextNorm.normalize(it.name).contains(q) }
+    }
+
     private fun prefixMatches(token: String): List<String> {
         var lo = java.util.Arrays.binarySearch(vocabulary, token)
         if (lo < 0) lo = -lo - 1

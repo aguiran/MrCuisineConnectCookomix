@@ -114,7 +114,8 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         var unreadable = 0
         var inARow = 0
         for ((i, e) in todo.withIndex()) {
-            progress(tr("Recettes Cookomix : %d / %d", i + 1, todo.size))
+            // Total du site et déjà traitées, pour qu'une reprise ne ressemble pas à une perte.
+            progress(tr("Recettes Cookomix : %d / %d (déjà à jour : %d)", entries.size - todo.size + i + 1, entries.size, entries.size - todo.size))
             val previousId = Mark.of(index[e.slug])?.id.orEmpty()
             try {
                 val res = Cookomix.parsePage(text(e.url), e.url)

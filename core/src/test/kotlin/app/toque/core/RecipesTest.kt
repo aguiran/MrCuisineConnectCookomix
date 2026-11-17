@@ -119,4 +119,18 @@ class RecipesTest {
         assertEquals("500 g carottes", r.allIngredients.single().display)
         assertEquals(1700000000000L, res.maxUpdated)
     }
+
+    @Test fun categoryStats() {
+        fun r(id: String, cat: String) = app.toque.core.recipes.Recipe(id = id, title = id, category = cat)
+        val idx = app.toque.core.recipes.SearchIndex(listOf(
+            r("web-1", "Desserts"), r("web-2", "Desserts"), r("ckx-1", "Desserts"),
+            r("ckx-2", "Accompagnement"), r("web-3", "Soupes"), r("web-4", "Soupes"), r("web-5", ""),
+        ))
+        val s = idx.categoryStats
+        assertEquals(listOf("Desserts", "Soupes", "Accompagnement"), s.map { it.name })
+        assertEquals(listOf(3, 2, 1), s.map { it.total })
+        assertEquals(2 to 1, s[0].lidl to s[0].cookomix)
+        assertEquals(listOf("Desserts"), idx.findCategories("dessért").map { it.name })
+        assertEquals(3, idx.findCategories("  ").size)
+    }
 }
