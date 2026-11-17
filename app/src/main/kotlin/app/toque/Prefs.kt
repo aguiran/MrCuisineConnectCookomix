@@ -83,6 +83,16 @@ class Prefs(context: Context) {
             p.edit().putBoolean("chainSteps", v).commit()
         }
 
+    /**
+     * Faire confirmer (« J'ai vérifié ce réglage ») chaque réglage machine importé d'une recette
+     * avant de pouvoir le lancer. Les règles de sécurité s'appliquent même désactivé.
+     */
+    var confirmImported: Boolean
+        get() = p.getBoolean("confirmImported", true)
+        set(v) {
+            p.edit().putBoolean("confirmImported", v).commit()
+        }
+
     var sound: Boolean
         get() = p.getBoolean("sound", true)
         set(v) {

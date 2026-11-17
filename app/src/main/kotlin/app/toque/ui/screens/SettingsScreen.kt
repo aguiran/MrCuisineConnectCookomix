@@ -94,6 +94,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         }, Ui.lp(t = 10))
         safety.addView(Ui.text(c, tr("À partir de 60 °C, la lame atteint sa vitesse en 2 à 3 secondes pour éviter les projections. À froid, elle y va directement."),
             15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        safety.addView(toggle(tr("Faire confirmer les réglages des recettes"), a.prefs.confirmImported) { a.prefs.confirmImported = it }, Ui.lp(t = 10))
+        safety.addView(Ui.text(c, tr("Bouton « J'ai vérifié ce réglage » avant chaque étape machine d'une recette importée (Lidl ou Cookomix). Désactivé, les réglages hors limites du robot restent refusés par la sécurité."),
+            15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
         safety.addView(toggle(tr("Enchaîner les étapes machine des recettes"), a.prefs.chainSteps) { a.prefs.chainSteps = it }, Ui.lp(t = 10))
         safety.addView(Ui.text(c, tr("Les réglages qui se suivent sans geste à faire entre eux partent ensemble d'un seul appui sur Lancer : la lame passe directement à la vitesse et à la température suivantes."),
             15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
