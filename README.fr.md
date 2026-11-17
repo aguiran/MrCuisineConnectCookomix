@@ -49,9 +49,9 @@
 > **Version macOS.** Ceci est une copie de [Wuki60/MrCuisineVibeConnect](https://github.com/Wuki60/MrCuisineVibeConnect)
 > dont les outils d'installation tournent sur un **Mac** : des scripts shell au lieu de PowerShell,
 > et [mtkclient](https://github.com/bkerler/mtkclient) au lieu de SP Flash Tool et de son pilote
-> Windows. L'appli Toque est inchangée et se met toujours à jour depuis les versions du dépôt
-> d'origine. L'installation depuis macOS a été faite de bout en bout sur un vrai robot en
-> novembre 2026 ; voir [AGENTS.md](AGENTS.md).
+> Windows. L'installation depuis macOS a été faite de bout en bout sur un vrai robot en
+> novembre 2026 ; voir [AGENTS.md](AGENTS.md). (Texte du projet d'origine. Dans **ce** fork, Toque
+> ajoute les recettes Cookomix et se met à jour depuis les versions de ce dépôt.)
 
 **Toque**, une interface moderne et rapide pour le robot **Monsieur Cuisine Connect** (SKMC 1200),
 qui remplace l'appli d'origine sur la tablette du robot tout en gardant **les recettes Lidl**.
@@ -64,8 +64,12 @@ qui remplace l'appli d'origine sur la tablette du robot tout en gardant **les re
 ## Installer
 
 **Commencez ici : [docs/INSTALLATION.fr.md](docs/INSTALLATION.fr.md)**, un guide pas à pas qui part
-de zéro, pour Mac. Sous Windows, suivez le
-[guide du dépôt d'origine](https://github.com/Wuki60/MrCuisineVibeConnect/blob/main/docs/INSTALLATION.fr.md).
+de zéro, pour Mac. Sous Windows, il n'existe que le
+[guide du dépôt d'origine](https://github.com/Wuki60/MrCuisineVibeConnect/blob/main/docs/INSTALLATION.fr.md) :
+il installe le Toque d'origine, **sans Cookomix**, qui se met à jour depuis le dépôt d'origine.
+Une fois terminé, installez par-dessus le Toque de ce dépôt (même signature, rien n'est perdu) :
+téléchargez `Toque-X.Y.Z.apk` dans la [dernière version](https://github.com/aguiran/MrCuisineConnectCookomix/releases/latest)
+puis `adb install -r Toque-X.Y.Z.apk` ; les mises à jour suivantes viendront d'ici.
 
 En bref : il faut un Mac, un câble **USB-A mâle ↔ USB-A mâle**, un petit tournevis Torx et 1 à 2
 heures. Vous préparez le Mac (Homebrew, puis une copie de ce dépôt), puis soit vous laissez
@@ -103,7 +107,7 @@ l'écran du robot.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton
   **« Retour à Toque »** reste affiché par-dessus l'appli d'origine quand on l'ouvre.
 - **Mises à jour depuis GitHub** : Réglages › Mises à jour vérifie les
-  [versions publiées](https://github.com/Wuki60/MrCuisineVibeConnect/releases) de ce dépôt et installe
+  [versions publiées](https://github.com/aguiran/MrCuisineConnectCookomix/releases) de ce dépôt et installe
   la nouvelle (sans rien demander sur un robot rooté, puis Toque redémarre). Refusé pendant un programme.
 
 ## Sécurité : ce qui change par rapport à l'appli d'origine

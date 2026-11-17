@@ -7,8 +7,10 @@ only for what needs hands, eyes or a macOS prompt.
 
 This is the **macOS** version of [Wuki60/MrCuisineVibeConnect](https://github.com/Wuki60/MrCuisineVibeConnect):
 the Windows tools (SP Flash Tool, MediaTek driver, PowerShell) are replaced by
-[mtkclient](https://github.com/bkerler/mtkclient) and shell scripts. The Toque app itself is
-unchanged. Humans: the same procedure by hand is in [docs/INSTALLATION.md](docs/INSTALLATION.md).
+[mtkclient](https://github.com/bkerler/mtkclient) and shell scripts. In this fork
+([aguiran/MrCuisineConnectCookomix](https://github.com/aguiran/MrCuisineConnectCookomix)), Toque also
+gets the Cookomix recipes and updates from this repository's releases; motor control and safety
+rules are unchanged. Humans: the same procedure by hand is in [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 ## What you are doing
 

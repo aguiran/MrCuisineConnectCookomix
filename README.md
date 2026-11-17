@@ -19,8 +19,9 @@
 > **macOS version.** This is a copy of [Wuki60/MrCuisineVibeConnect](https://github.com/Wuki60/MrCuisineVibeConnect)
 > whose install tools run on a **Mac**: shell scripts instead of PowerShell, and
 > [mtkclient](https://github.com/bkerler/mtkclient) instead of SP Flash Tool and its Windows driver.
-> The Toque app is unchanged and still updates from the original repository's releases. The macOS
-> install was done end to end on a real robot in November 2026; see [AGENTS.md](AGENTS.md).
+> The macOS install was done end to end on a real robot in November 2026; see [AGENTS.md](AGENTS.md).
+> (Upstream text. In **this** fork, Toque adds the Cookomix recipes and updates from this
+> repository's releases.)
 
 **Toque** is a fast, modern replacement interface for the Lidl **Monsieur Cuisine Connect**
 kitchen robot (SKMC 1200). It runs on the robot's own tablet instead of the stock app and still
@@ -38,8 +39,12 @@ uses **the official Lidl recipes**.
 ## Install
 
 **Start here: [docs/INSTALLATION.md](docs/INSTALLATION.md)**, a step-by-step guide that starts from
-zero, for a Mac. On Windows, follow the
-[original repository's guide](https://github.com/Wuki60/MrCuisineVibeConnect/blob/main/docs/INSTALLATION.md).
+zero, for a Mac. On Windows, there is only the
+[original repository's guide](https://github.com/Wuki60/MrCuisineVibeConnect/blob/main/docs/INSTALLATION.md):
+it installs the original Toque, **without Cookomix**, which updates from the original repository.
+Once it is done, install this repository's Toque over it (same signature, nothing is lost):
+download `Toque-X.Y.Z.apk` from the [latest release](https://github.com/aguiran/MrCuisineConnectCookomix/releases/latest)
+and run `adb install -r Toque-X.Y.Z.apk`; later updates then come from here.
 
 In short: you need a Mac, a **USB-A male ↔ USB-A male** cable, a small Torx screwdriver and 1 to 2
 hours. You prepare the Mac (Homebrew, then a copy of this repository), then either let
@@ -75,7 +80,7 @@ screen.
 - **Made for a robot without Android buttons**: Toque opens at startup, and a **Back to Toque**
   button stays on top of the stock app when you open it.
 - **Updates from GitHub**: *Settings › Updates* checks this repository's
-  [Releases](https://github.com/Wuki60/MrCuisineVibeConnect/releases) and installs the new version
+  [Releases](https://github.com/aguiran/MrCuisineConnectCookomix/releases) and installs the new version
   (silently on a rooted robot, then Toque restarts). Refused while a program is running.
 
 ## Safety: what changes compared to the stock app
