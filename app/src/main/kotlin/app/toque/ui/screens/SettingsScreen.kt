@@ -468,7 +468,21 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         ckxAccount.addView(email, Ui.lp(Ui.MATCH, Ui.u(58), t = 10))
-        ckxAccount.addView(password, Ui.lp(Ui.MATCH, Ui.u(58), t = 10))
+        // Mot de passe + « Afficher » : sur l'écran tactile, une faute de frappe masquée passe inaperçue.
+        val pwdRow = Ui.horizontal(c)
+        pwdRow.addView(password, LinearLayout.LayoutParams(0, Ui.u(58), 1f).apply { rightMargin = Ui.u(10) })
+        var shown = false
+        lateinit var showBtn: View
+        showBtn = Ui.toggleChip(c, tr("Afficher"), false) {
+            shown = !shown
+            val pos = password.selectionEnd
+            password.inputType = InputType.TYPE_CLASS_TEXT or
+                (if (shown) InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD else InputType.TYPE_TEXT_VARIATION_PASSWORD)
+            password.setSelection(pos.coerceIn(0, password.text.length))
+            (showBtn as TextView).text = if (shown) tr("Masquer") else tr("Afficher")
+        }
+        pwdRow.addView(showBtn)
+        ckxAccount.addView(pwdRow, Ui.lp(Ui.MATCH, Ui.WRAP, t = 10))
         ckxAccount.addView(Ui.button(c, tr("Se connecter"), Ui.Style.PRIMARY, Icon.Kind.CHECK, height = 52) {
             if (ckxBusy) return@button
             ckxBusy = true
