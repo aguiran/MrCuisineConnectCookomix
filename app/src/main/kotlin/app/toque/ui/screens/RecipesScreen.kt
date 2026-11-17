@@ -22,6 +22,7 @@ import android.widget.TextView
 import app.toque.Prefs
 import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
+import app.toque.core.recipes.Origin
 import app.toque.core.recipes.RecipeFilter
 import app.toque.core.recipes.SearchIndex
 import app.toque.ui.Icon
@@ -38,7 +39,8 @@ import java.util.concurrent.Executors
 class RecipesScreen(a: MainActivity, private val focusSearch: Boolean = false, favorites: Boolean = false) : Screen(a) {
     override val title = if (favorites) tr("Favoris") else tr("Recettes")
 
-    private var filter = RecipeFilter(favoritesOnly = favorites)
+    private var filter = RecipeFilter(favoritesOnly = favorites, origin = Origin.of(a.prefs.recipeOrigin))
+    private lateinit var tabRow: LinearLayout
     private var query = ""
     private var results: List<SearchIndex.Hit> = emptyList()
     private var generation = 0
@@ -57,6 +59,9 @@ class RecipesScreen(a: MainActivity, private val focusSearch: Boolean = false, f
         root.setPadding(Ui.u(24), Ui.u(6), Ui.u(24), 0)
 
         val bar = Ui.horizontal(c)
+        // Onglets de provenance : recettes Lidl et Cookomix ne sont pas mélangées (catégories différentes).
+        tabRow = Ui.horizontal(c)
+        bar.addView(tabRow, Ui.lp(Ui.WRAP, Ui.WRAP, r = 14))
         val field = Ui.horizontal(c)
         field.setPadding(Ui.u(20), 0, Ui.u(10), 0)
         field.background = Ui.round(Ui.SURFACE, 32f, Ui.STROKE, 1f)
@@ -130,20 +135,34 @@ class RecipesScreen(a: MainActivity, private val focusSearch: Boolean = false, f
         return root
     }
 
+    private fun buildTabs() {
+        tabRow.removeAllViews()
+        val origins = listOf(Origin.ALL, Origin.LIDL, Origin.COOKOMIX)
+        tabRow.addView(Ui.tabs(c, listOf(tr("Tout"), "Lidl", "Cookomix"), origins.indexOf(filter.origin)) { i ->
+            a.prefs.recipeOrigin = origins[i].name
+            // Changer d'onglet garde favoris et durée, mais pas une catégorie de l'autre source.
+            filter = filter.copy(origin = origins[i], category = "")
+            buildTabs(); buildChips(); search()
+        })
+    }
+
     private fun buildChips() {
         chips.removeAllViews()
         fun chip(label: String, selected: Boolean, f: RecipeFilter) {
             chips.addView(Ui.toggleChip(c, label, selected) { filter = f; buildChips(); search() }, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
         }
-        val base = RecipeFilter()
+        val base = RecipeFilter(origin = filter.origin)
         chip(tr("Toutes"), filter == base, base)
         // Page de toutes les catégories (le bandeau ne montre que les plus fournies).
         chips.addView(Ui.toggleChip(c, "☰ " + tr("Catégories…"), false) {
-            a.push(CategoriesScreen(a, filter.category) { cat -> filter = base.copy(category = cat) })
+            a.push(CategoriesScreen(a, filter.category, filter.origin) { cat, origin ->
+                a.prefs.recipeOrigin = origin.name
+                filter = RecipeFilter(origin = origin, category = cat)
+            })
         }, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
         chip(tr("Favoris"), filter.favoritesOnly, base.copy(favoritesOnly = true))
         chip(tr("30 min max"), filter.maxMinutes == 30, base.copy(maxMinutes = 30))
-        val top = a.app.recipes.index.categoryStats.take(20).map { it.name }
+        val top = a.app.recipes.index.findCategories("", filter.origin).take(20).map { it.name }
         // Catégorie choisie dans la page des catégories : affichée en tête si elle n'est pas dans le bandeau.
         val cats = if (filter.category.isNotEmpty() && filter.category !in top) listOf(filter.category) + top else top
         for (cat in cats) chip(cat, filter.category == cat, base.copy(category = cat))
@@ -180,6 +199,7 @@ class RecipesScreen(a: MainActivity, private val focusSearch: Boolean = false, f
     }
 
     override fun onShow() {
+        buildTabs()
         buildChips()
         search()
         unsub = a.app.recipes.onChange { buildChips(); search() }

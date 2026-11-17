@@ -67,11 +67,27 @@ object TextNorm {
 }
 
 /** Filtres de la liste de recettes. */
+/** Provenance d'une recette : site Lidl (ou appli d'origine) ou cookomix.com. */
+enum class Origin {
+    ALL, LIDL, COOKOMIX;
+
+    fun accepts(id: String): Boolean = when (this) {
+        ALL -> true
+        LIDL -> !id.startsWith(Cookomix.ID_PREFIX)
+        COOKOMIX -> id.startsWith(Cookomix.ID_PREFIX)
+    }
+
+    companion object {
+        fun of(name: String?): Origin = values().firstOrNull { it.name == name } ?: ALL
+    }
+}
+
 data class RecipeFilter(
     val category: String = "",
     val favoritesOnly: Boolean = false,
     val source: RecipeSource? = null,
     val maxMinutes: Int = 0,
+    val origin: Origin = Origin.ALL,
 )
 
 /**
@@ -113,7 +129,10 @@ class SearchIndex(recipes: List<Recipe>) {
     init {
         val list = ArrayList<Entry>(recipes.size)
         for ((index, r) in recipes.withIndex()) {
-            list += Entry(r.id, r.title, r.category, r.tags, r.favorite, r.source, r.totalMinutes, r.image,
+            // Cookomix donne parfois plusieurs catégories (« Petit déjeuner, Dessert ») : la première
+            // sert de catégorie, les autres restent trouvables à la recherche.
+            val category = if (r.id.startsWith(Cookomix.ID_PREFIX)) r.category.split(',').first().trim() else r.category
+            list += Entry(r.id, r.title, category, r.tags, r.favorite, r.source, r.totalMinutes, r.image,
                 r.machineSteps, TextNorm.normalize(r.title), r.rating, r.ratingCount)
             fun add(text: String, w: Int) {
                 for (t in TextNorm.tokens(text)) {
@@ -154,11 +173,18 @@ class SearchIndex(recipes: List<Recipe>) {
             .sortedWith(compareByDescending<CategoryStat> { it.total }.thenBy { TextNorm.normalize(it.name) })
     }
 
-    /** Catégories dont le nom contient [query] (accents et casse ignorés). */
-    fun findCategories(query: String): List<CategoryStat> {
+    /** Catégories dont le nom contient [query] (accents et casse ignorés), ayant des recettes de [origin]. */
+    fun findCategories(query: String, origin: Origin = Origin.ALL): List<CategoryStat> {
         val q = TextNorm.normalize(query).trim()
-        return if (q.isEmpty()) categoryStats else categoryStats.filter { TextNorm.normalize(it.name).contains(q) }
+        return categoryStats.filter { s ->
+            (q.isEmpty() || TextNorm.normalize(s.name).contains(q)) && when (origin) {
+                Origin.ALL -> true
+                Origin.LIDL -> s.lidl > 0
+                Origin.COOKOMIX -> s.cookomix > 0
+            }
+        }.let { l -> if (origin == Origin.ALL) l else l.sortedWith(compareByDescending<CategoryStat> { s -> if (origin == Origin.LIDL) s.lidl else s.cookomix }.thenBy { TextNorm.normalize(it.name) }) }
     }
+
 
     private fun prefixMatches(token: String): List<String> {
         var lo = java.util.Arrays.binarySearch(vocabulary, token)
@@ -192,6 +218,7 @@ class SearchIndex(recipes: List<Recipe>) {
 
     private fun accepts(e: Entry, f: RecipeFilter): Boolean {
         if (f.category.isNotEmpty() && e.category != f.category) return false
+        if (!f.origin.accepts(e.id)) return false
         if (f.favoritesOnly && !e.favorite) return false
         if (f.source != null && e.source != f.source) return false
         if (f.maxMinutes > 0 && (e.totalMinutes <= 0 || e.totalMinutes > f.maxMinutes)) return false

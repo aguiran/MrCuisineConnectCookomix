@@ -100,6 +100,13 @@ class Prefs(context: Context) {
             p.edit().putBoolean("manualDials", v).commit()
         }
 
+    /** Onglet de provenance des recettes (Tout / Lidl / Cookomix), mémorisé. */
+    var recipeOrigin: String
+        get() = p.getString("recipeOrigin", "ALL") ?: "ALL"
+        set(v) {
+            p.edit().putString("recipeOrigin", v).commit()
+        }
+
     var sound: Boolean
         get() = p.getBoolean("sound", true)
         set(v) {

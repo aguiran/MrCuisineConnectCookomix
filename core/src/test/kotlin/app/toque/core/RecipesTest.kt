@@ -1,6 +1,7 @@
 package app.toque.core
 
 import app.toque.core.json.Json
+import app.toque.core.recipes.Origin
 import app.toque.core.recipes.OriginalDbMapper
 import app.toque.core.recipes.Recipe
 import app.toque.core.recipes.RecipeCodec
@@ -132,5 +133,21 @@ class RecipesTest {
         assertEquals(2 to 1, s[0].lidl to s[0].cookomix)
         assertEquals(listOf("Desserts"), idx.findCategories("dessért").map { it.name })
         assertEquals(3, idx.findCategories("  ").size)
+    }
+
+    @Test fun categoriesByOrigin() {
+        fun r(id: String, cat: String) = app.toque.core.recipes.Recipe(id = id, title = id, category = cat)
+        val idx = app.toque.core.recipes.SearchIndex(listOf(
+            r("web-1", "Plats principaux"), r("ckx-1", "Plat principal"), r("ckx-2", "Petit déjeuner, Dessert"),
+            r("web-2", "Desserts"), r("ckx-3", "Entrée"),
+        ))
+        // Les sources ne sont pas mélangées : chaque onglet a ses catégories.
+        assertEquals(listOf("Desserts", "Plats principaux"), idx.findCategories("", Origin.LIDL).map { it.name }.sorted())
+        assertEquals(listOf("Entrée", "Petit déjeuner", "Plat principal"), idx.findCategories("", Origin.COOKOMIX).map { it.name }.sorted())
+        assertEquals(5, idx.findCategories("", Origin.ALL).size)
+        assertEquals(listOf("ckx-1"), idx.search("", app.toque.core.recipes.RecipeFilter(origin = Origin.COOKOMIX, category = "Plat principal")).map { it.entry.id })
+        assertEquals(listOf("web-1", "web-2"), idx.search("", app.toque.core.recipes.RecipeFilter(origin = Origin.LIDL)).map { it.entry.id }.sorted())
+        // « Petit déjeuner, Dessert » : rangée dans « Petit déjeuner », trouvable par « dessert ».
+        assertTrue(idx.search("dessert", app.toque.core.recipes.RecipeFilter(origin = Origin.COOKOMIX)).any { it.entry.id == "ckx-2" })
     }
 }

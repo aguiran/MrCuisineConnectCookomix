@@ -15,6 +15,7 @@ import android.widget.GridView
 import android.widget.LinearLayout
 import android.widget.TextView
 import app.toque.core.i18n.tr
+import app.toque.core.recipes.Origin
 import app.toque.core.recipes.SearchIndex
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
@@ -25,9 +26,16 @@ import app.toque.ui.Ui
  * Toutes les catégories de recettes (Lidl et Cookomix), de la plus fournie à la moins fournie,
  * avec un champ pour les filtrer par nom. Toucher une catégorie revient aux recettes, filtrées.
  */
-class CategoriesScreen(a: MainActivity, private val current: String, private val onPick: (String) -> Unit) : Screen(a) {
+class CategoriesScreen(
+    a: MainActivity,
+    private val current: String,
+    private var origin: Origin,
+    private val onPick: (String, Origin) -> Unit,
+) : Screen(a) {
     override val title = tr("Catégories")
 
+    private var query = ""
+    private lateinit var tabRow: LinearLayout
     private var shown: List<SearchIndex.CategoryStat> = emptyList()
     private lateinit var count: TextView
     private lateinit var grid: GridView
@@ -38,6 +46,9 @@ class CategoriesScreen(a: MainActivity, private val current: String, private val
         root.setPadding(Ui.u(24), Ui.u(6), Ui.u(24), 0)
 
         val bar = Ui.horizontal(c)
+        tabRow = Ui.horizontal(c)
+        bar.addView(tabRow, Ui.lp(Ui.WRAP, Ui.WRAP, r = 14))
+        buildTabs()
         val field = Ui.horizontal(c)
         field.setPadding(Ui.u(20), 0, Ui.u(20), 0)
         field.background = Ui.round(Ui.SURFACE, 32f, Ui.STROKE, 1f)
@@ -54,7 +65,10 @@ class CategoriesScreen(a: MainActivity, private val current: String, private val
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, st: Int, c1: Int, a1: Int) {}
                 override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c1: Int) {}
-                override fun afterTextChanged(s: Editable?) = show(s?.toString().orEmpty())
+                override fun afterTextChanged(s: Editable?) {
+                    query = s?.toString().orEmpty()
+                    show()
+                }
             })
             setOnEditorActionListener { _, _, _ -> a.hideKeyboard(); true }
         }
@@ -78,7 +92,7 @@ class CategoriesScreen(a: MainActivity, private val current: String, private val
             setOnItemClickListener { _, _, pos, _ ->
                 val cat = shown.getOrNull(pos) ?: return@setOnItemClickListener
                 a.hideKeyboard()
-                onPick(cat.name)
+                onPick(cat.name, origin)
                 a.back()
             }
             setOnScrollListener(object : AbsListView.OnScrollListener {
@@ -89,12 +103,23 @@ class CategoriesScreen(a: MainActivity, private val current: String, private val
             })
         }
         root.addView(grid, LinearLayout.LayoutParams(Ui.MATCH, 0, 1f))
-        show("")
+        show()
         return root
     }
 
-    private fun show(query: String) {
-        shown = a.app.recipes.index.findCategories(query)
+    private fun buildTabs() {
+        tabRow.removeAllViews()
+        val origins = listOf(Origin.ALL, Origin.LIDL, Origin.COOKOMIX)
+        tabRow.addView(Ui.tabs(c, listOf(tr("Tout"), "Lidl", "Cookomix"), origins.indexOf(origin)) { i ->
+            origin = origins[i]
+            a.prefs.recipeOrigin = origin.name
+            buildTabs()
+            show()
+        })
+    }
+
+    private fun show() {
+        shown = a.app.recipes.index.findCategories(query, origin)
         count.text = if (shown.size == 1) tr("1 catégorie") else tr("%d catégories", shown.size)
         adapter.notifyDataSetChanged()
     }
@@ -132,10 +157,17 @@ class CategoriesScreen(a: MainActivity, private val current: String, private val
 
         fun bind(s: SearchIndex.CategoryStat) {
             name.text = s.name
+            val n = when (origin) {
+                Origin.ALL -> s.total
+                Origin.LIDL -> s.lidl
+                Origin.COOKOMIX -> s.cookomix
+            }
             val parts = ArrayList<String>()
-            parts += if (s.total == 1) tr("1 recette") else tr("%d recettes", s.total)
-            if (s.lidl > 0 && s.cookomix > 0) parts += tr("%d Lidl · %d Cookomix", s.lidl, s.cookomix)
-            else parts += if (s.cookomix > 0) "Cookomix" else "Lidl"
+            parts += if (n == 1) tr("1 recette") else tr("%d recettes", n)
+            if (origin == Origin.ALL) {
+                if (s.lidl > 0 && s.cookomix > 0) parts += tr("%d Lidl · %d Cookomix", s.lidl, s.cookomix)
+                else parts += if (s.cookomix > 0) "Cookomix" else "Lidl"
+            }
             meta.text = parts.joinToString(" · ")
             val sel = s.name == current
             root.background = Ui.pressable(Ui.round(Ui.SURFACE, 22f, if (sel) Ui.ACCENT else Ui.STROKE, if (sel) 2.5f else 1f), 22f)
