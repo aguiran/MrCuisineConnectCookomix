@@ -80,6 +80,8 @@ l'écran du robot.
 - **Interface sombre**, pensée pour l'écran 7" et le bouton rotatif du robot, fluide sur sa
   tablette d'origine (1 Go de RAM, Android 6) : pas de bibliothèque lourde, images
   sous-échantillonnées, vues recyclées.
+- **Recettes Cookomix** (ce fork) : les recettes de cookomix.com que le MCC peut faire, chaque
+  réglage Thermomix converti pour le MCC et contrôlé par les mêmes sécurités (voir le haut de page).
 - **Recettes Lidl, directement depuis monsieur-cuisine.com**. Toque télécharge les recettes
   officielles du Monsieur Cuisine connect (environ 1 700 en français, avec les réglages machine de
   chaque étape) par l'API publique du site, chaque nuit ou sur demande : aucun compte, aucun
@@ -165,6 +167,17 @@ numéro de version comme erreur. Le JDK d'Android Studio convient :
    `python3 tools/twin.py --sdk <dossier du SDK>` puis, dans Toque, Réglages › Machine ›
    Jumeau (émulateur : hôte `10.0.2.2` ; appareil réel : `adb reverse tcp:8765 tcp:8765` et
    hôte `127.0.0.1`). `python3 tools/twin.py --send "lid 1"` ouvre le couvercle, etc.
+3. **Recettes Cookomix sans robot** : en mode Démo, *Réglages › Recettes Cookomix › Synchroniser
+   Cookomix* télécharge et convertit les recettes sur n'importe quel Android ; on peut ouvrir une
+   recette et dérouler la cuisson guidée contre la base simulée (ou le jumeau).
+4. **Tests automatiques** (sur le PC, sans Android) : `./gradlew :core:test`. Ils couvrent la
+   conversion Thermomix → MCC (page d'essai inventée, fouet, turbo, demi-vitesses, pétrissage,
+   Varoma), les pages illisibles et les coupe-circuits (codes CKX), et les traductions. Avec le
+   jumeau lancé (point 2), deux tests de plus s'exécutent au lieu d'être ignorés :
+   `TwinIntegrationTest` (protocole) et `CookomixTwinTest`, qui envoie chaque réglage converti
+   d'une recette Cookomix au jumeau, vérifie qu'il arrive tel quel à la base, et que les réglages
+   hors limites du MCC (vitesse en chauffe, sens inverse, fouet, Turbo avec le fouet ou à chaud)
+   sont refusés avant de l'atteindre.
 
 ## Ajouter une langue
 
@@ -206,9 +219,18 @@ d'origine.
 
 ## Crédits
 
+- Projet d'origine : [Wuki60/MrCuisineVibeConnect](https://github.com/Wuki60/MrCuisineVibeConnect)
+  (Toque) et sa version macOS [flexbox/MrCuisineVibeConnect](https://github.com/flexbox/MrCuisineVibeConnect),
+  dont ce dépôt est un fork : toute l'application, le pilotage et l'installation viennent d'eux ;
+  ce fork ajoute les recettes Cookomix.
+- Recettes Cookomix : [cookomix.com](https://www.cookomix.com) et les membres qui y publient leurs
+  recettes. Projet indépendant, non affilié à Cookomix. Les recettes restent leur propriété : ce
+  dépôt n'en contient aucune, chaque robot les lit sur le site pour l'usage personnel de son
+  propriétaire, avec l'auteur, la note et le lien vers la page d'origine dans chaque recette.
 - Protocole : [Monsieur Cuisine Developer SDK](https://github.com/antrea/monsieur-cuisine-developer-sdk) (MIT).
 - Accès au robot : [Monsieur-Cuisine-Connect-Hack](https://github.com/EliasKotlyar/Monsieur-Cuisine-Connect-Hack).
 - Mode téléchargement MediaTek sous macOS : [mtkclient](https://github.com/bkerler/mtkclient) (GPLv3, téléchargé par `prepare`, non inclus ; `prepare` applique les corrections pour le pilote série de macOS de `tools/setup/mtkclient-macos-serial.patch`).
 
-Licence MIT. Ce dépôt ne contient aucune recette, image ni code de Lidl : chaque robot télécharge
-lui-même les recettes sur monsieur-cuisine.com, pour l'usage personnel de son propriétaire.
+Licence MIT. Ce dépôt ne contient aucune recette, image ni code de Lidl ou de Cookomix : chaque
+robot télécharge lui-même les recettes sur monsieur-cuisine.com et cookomix.com, pour l'usage
+personnel de son propriétaire.

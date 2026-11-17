@@ -53,6 +53,8 @@ screen.
 
 - **Dark interface** designed for the robot's 7" screen and rotary knob, and smooth on its
   original tablet (1 GB RAM, Android 6): no heavy libraries, downsampled images, recycled views.
+- **Cookomix recipes** (this fork): the cookomix.com recipes the MCC can make, with each Thermomix
+  setting converted for the MCC and checked by the same safety rules; see the top of this page.
 - **Lidl recipes, straight from monsieur-cuisine.com.** Toque downloads the official Monsieur
   Cuisine connect recipes (about 1,700 in French, with each step's machine settings) from the
   site's public API, nightly or on demand: no account, no server to run, no need for the stock app.
@@ -135,6 +137,16 @@ Android Studio's JDK works:
    Run `python3 tools/twin.py --sdk <SDK folder>`, then in Toque choose *Settings › Machine ›
    Twin (PC)* (emulator: host `10.0.2.2`; real device: `adb reverse tcp:8765 tcp:8765` and host
    `127.0.0.1`). `python3 tools/twin.py --send "lid 1"` opens the lid, etc.
+3. **Cookomix recipes without the robot**: in Demo mode, *Settings › Cookomix recipes › Sync
+   Cookomix* downloads and converts the recipes on any Android device; open a recipe and run the
+   guided cooking against the simulated base (or the twin).
+4. **Automated tests** (on the PC, no Android): `./gradlew :core:test`. They cover the Thermomix →
+   MCC conversion (made-up test page, whisk, turbo, half speeds, kneading, Varoma), unreadable pages
+   and circuit breakers (CKX codes), and translations. With the twin running (point 2), two more
+   tests run instead of being skipped: `TwinIntegrationTest` (protocol) and `CookomixTwinTest`,
+   which sends every converted setting of a Cookomix recipe to the twin, checks it reaches the
+   base unchanged, and that settings beyond the MCC's limits (heated speed, reverse, whisk, Turbo
+   with the whisk or when hot) are refused before reaching it.
 
 ## Add a language
 
@@ -175,9 +187,18 @@ stock app. From Windows, use the original repository's guide.
 
 ## Credits
 
+- Original project: [Wuki60/MrCuisineVibeConnect](https://github.com/Wuki60/MrCuisineVibeConnect)
+  (Toque) and its macOS version [flexbox/MrCuisineVibeConnect](https://github.com/flexbox/MrCuisineVibeConnect),
+  which this repository forks: the whole app, motor control and install come from them; this fork
+  adds the Cookomix recipes.
+- Cookomix recipes: [cookomix.com](https://www.cookomix.com) and the members who publish their
+  recipes there. Independent project, not affiliated with Cookomix. Recipes remain their
+  property: this repository contains none, each robot reads them from the site for its owner's
+  personal use, with the author, rating and a link to the original page in every recipe.
 - Protocol: [Monsieur Cuisine Developer SDK](https://github.com/antrea/monsieur-cuisine-developer-sdk) (MIT).
 - Robot access: [Monsieur-Cuisine-Connect-Hack](https://github.com/EliasKotlyar/Monsieur-Cuisine-Connect-Hack).
 - MediaTek download mode on macOS: [mtkclient](https://github.com/bkerler/mtkclient) (GPLv3, downloaded by `prepare`, not included; `prepare` applies the macOS serial fixes in `tools/setup/mtkclient-macos-serial.patch`).
 
-MIT License. This repository contains no Lidl recipes, images or code: each robot downloads the
-recipes itself from monsieur-cuisine.com, for its owner's personal use.
+MIT License. This repository contains no Lidl or Cookomix recipes, images or code: each robot
+downloads the recipes itself from monsieur-cuisine.com and cookomix.com, for its owner's personal
+use.
