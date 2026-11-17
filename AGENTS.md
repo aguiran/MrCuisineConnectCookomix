@@ -234,6 +234,8 @@ and `./gradlew :app:assembleRelease`, with JDK 17 or 21 (Android Studio's:
 `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`). Interface texts are
 written in French and wrapped in `tr(...)`. Motor safety rules live in `core/.../machine/Safety.kt`
 and are enforced by `MachineController`: keep them strict, and add a test in `ControllerTest` for any
-behaviour change. The Cookomix conversion (Thermomix → MCC) lives in `core/.../recipes/Cookomix.kt`
+behaviour change. Never push to `main`: work on a branch and open a pull request to `main` of
+aguiran/MrCuisineConnectCookomix (not the upstream repository), see [CONTRIBUTING.md](CONTRIBUTING.md);
+a merge that changes `versionName` publishes a release. The Cookomix conversion (Thermomix → MCC) lives in `core/.../recipes/Cookomix.kt`
 (tests: `CookomixTest`, and `CookomixTwinTest` with `tools/twin.py` running); every `Cookomix.Error`
 code must have a row in `docs/COOKOMIX-ERREURS.md` (checked by `CookomixTest.errorCodes`).

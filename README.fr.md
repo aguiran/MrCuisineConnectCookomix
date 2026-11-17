@@ -231,8 +231,11 @@ fichier de langue.
 
 ## Publier une nouvelle version
 
-1. Augmenter `versionCode` et `versionName` dans `app/build.gradle.kts`.
-2. Committer et pousser sur `main`.
+Tout changement passe par une branche et une pull request vers `main`, testée par la CI : voir
+[CONTRIBUTING.md](CONTRIBUTING.md). Pour publier :
+
+1. Dans la pull request, augmenter `versionCode` et `versionName` dans `app/build.gradle.kts`.
+2. Fusionner la pull request dans `main` (CI verte).
 
 Le [workflow de publication](.github/workflows/release.yml) lance les tests, compile l'APK et publie la
 version `vX.Y.Z` avec. Les robots la trouvent ensuite dans Réglages › Mises à jour.

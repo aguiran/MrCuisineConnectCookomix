@@ -225,8 +225,11 @@ every language file.
 
 ## Publish a new version
 
-1. Increase `versionCode` and `versionName` in `app/build.gradle.kts`.
-2. Commit and push to `main`.
+Every change goes through a branch and a pull request to `main`, tested by CI: see
+[CONTRIBUTING.md](CONTRIBUTING.md) (in French). To publish:
+
+1. In the pull request, increase `versionCode` and `versionName` in `app/build.gradle.kts`.
+2. Merge the pull request into `main` (green CI).
 
 The [release workflow](.github/workflows/release.yml) runs the tests, builds the APK and publishes
 the `vX.Y.Z` release with it. Robots then find it in *Settings › Updates*.
