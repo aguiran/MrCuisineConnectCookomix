@@ -19,6 +19,10 @@ class ValueCard(c: Context, label: String, icon: Icon.Kind) : LinearLayout(c) {
     private val iconView = Icon(c, icon, Ui.TEXT2)
     private val minus: View
     private val plus: View
+    private val valueRow: LinearLayout
+    private val buttons: LinearLayout
+    /** Molette, affichée à la place de la grande valeur et des boutons en mode molettes. */
+    val dial = Dial(c)
     var onMinus: () -> Unit = {}
     var onPlus: () -> Unit = {}
     var onSelect: () -> Unit = {}
@@ -33,13 +37,16 @@ class ValueCard(c: Context, label: String, icon: Icon.Kind) : LinearLayout(c) {
         head.addView(iconView, LayoutParams(Ui.u(24), Ui.u(24)).apply { rightMargin = Ui.u(8) })
         head.addView(Ui.text(c, label.uppercase(), 15f, Ui.TEXT2, Ui.MEDIUM).apply { letterSpacing = 0.08f })
         addView(head)
-        val row = Ui.horizontal(c, Gravity.BOTTOM)
-        row.addView(valueView)
-        row.addView(unitView, Ui.lp(Ui.WRAP, Ui.WRAP, l = 6, b = 10))
-        addView(row, Ui.lp(t = 10))
+        valueRow = Ui.horizontal(c, Gravity.BOTTOM)
+        valueRow.addView(valueView)
+        valueRow.addView(unitView, Ui.lp(Ui.WRAP, Ui.WRAP, l = 6, b = 10))
+        addView(valueRow, Ui.lp(t = 10))
         addView(subView, Ui.lp(t = 2))
+        dial.visibility = GONE
+        dial.onTouchStart = { onSelect() }
+        addView(dial, LayoutParams(Ui.MATCH, 0, 1f).apply { topMargin = Ui.u(6) })
         addView(Ui.spacer(c, h = 0, weight = 1f))
-        val buttons = Ui.horizontal(c)
+        buttons = Ui.horizontal(c)
         minus = Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.MINUS, height = 60) { onSelect(); onMinus() }
         plus = Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.PLUS, height = 60) { onSelect(); onPlus() }
         repeatOnHold(minus, { repeatEnabled }) { onMinus() }
@@ -57,6 +64,24 @@ class ValueCard(c: Context, label: String, icon: Icon.Kind) : LinearLayout(c) {
         valueView.setTextColor(color)
         unitView.text = unit
         subView.text = sub
+        dial.set(dial.position, value, unit, sub, color)
+    }
+
+    /** Position et couleur de la molette ([steps] positions). */
+    fun setDial(steps: Int, position: Int, color: Int) {
+        dial.steps = steps.coerceAtLeast(2)
+        dial.color = color
+        dial.set(position, valueView.text.toString(), unitView.text.toString(), subView.text.toString(), valueView.currentTextColor)
+    }
+
+    /** Bascule entre grande valeur + boutons − / + et molette tactile. */
+    fun setDialMode(on: Boolean) {
+        val vis = if (on) GONE else VISIBLE
+        valueRow.visibility = vis
+        subView.visibility = vis
+        buttons.visibility = vis
+        getChildAt(indexOfChild(dial) + 1).visibility = vis // espace extensible du mode boutons
+        dial.visibility = if (on) VISIBLE else GONE
     }
 
     fun select(sel: Boolean) {
@@ -167,6 +192,116 @@ class TempRing(c: Context) : View(c) {
             x += bw + gap
         }
         arc.style = Paint.Style.STROKE
+    }
+}
+
+/**
+ * Molette tactile (« potard ») : arc de 270° découpé en [steps] positions. On fait glisser le
+ * curseur au doigt, ou on touche l'arc pour y sauter ; [onPick] reçoit la position visée et
+ * l'écran décide de la valeur retenue (limites de sécurité comprises), puis appelle [set].
+ * La valeur, son unité et une légende sont dessinées au centre.
+ */
+class Dial(c: Context) : View(c) {
+    var steps = 2
+    var position = 0
+        private set
+    var color = Ui.ACCENT
+    var onPick: (Int) -> Unit = {}
+    var onTouchStart: () -> Unit = {}
+    private var value = ""
+    private var unit = ""
+    private var sub = ""
+    private var valueColor = Ui.TEXT
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
+    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+    private val r = RectF()
+
+    fun set(position: Int, value: String, unit: String, sub: String, valueColor: Int) {
+        this.position = position.coerceIn(0, steps - 1)
+        this.value = value
+        this.unit = unit
+        this.sub = sub
+        this.valueColor = valueColor
+        invalidate()
+    }
+
+    private fun fraction(pos: Int) = if (steps <= 1) 0f else pos / (steps - 1).toFloat()
+
+    override fun onDraw(canvas: Canvas) {
+        val size = minOf(width, height).toFloat()
+        if (size <= 0f) return
+        val sw = size * 0.075f
+        val cx = width / 2f
+        val cy = height / 2f + size * 0.04f
+        val rad = size / 2f - sw
+        r.set(cx - rad, cy - rad, cx + rad, cy + rad)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = sw
+        paint.color = Ui.SURFACE3
+        canvas.drawArc(r, 135f, 270f, false, paint)
+        // graduations (si les positions ne sont pas trop serrées)
+        if (steps in 3..21) {
+            paint.strokeWidth = sw * 0.12f
+            paint.color = Ui.STROKE
+            for (i in 0 until steps) {
+                val a = Math.toRadians((135 + 270 * fraction(i)).toDouble())
+                val r1 = rad + sw * 0.75f
+                val r2 = rad + sw * 1.05f
+                canvas.drawLine(cx + (r1 * Math.cos(a)).toFloat(), cy + (r1 * Math.sin(a)).toFloat(),
+                    cx + (r2 * Math.cos(a)).toFloat(), cy + (r2 * Math.sin(a)).toFloat(), paint)
+            }
+        }
+        val f = fraction(position)
+        paint.strokeWidth = sw
+        paint.color = color
+        if (f > 0f) canvas.drawArc(r, 135f, 270f * f, false, paint)
+        // curseur
+        val a = Math.toRadians((135 + 270 * f).toDouble())
+        val kx = cx + (rad * Math.cos(a)).toFloat()
+        val ky = cy + (rad * Math.sin(a)).toFloat()
+        paint.style = Paint.Style.FILL
+        paint.color = Ui.TEXT
+        canvas.drawCircle(kx, ky, sw * 0.95f, paint)
+        paint.color = color
+        canvas.drawCircle(kx, ky, sw * 0.5f, paint)
+        // valeur au centre
+        text.typeface = Ui.LIGHT
+        text.color = valueColor
+        text.textSize = size * (if (value.length > 4) 0.20f else 0.27f)
+        canvas.drawText(value, cx, cy + size * 0.06f, text)
+        text.typeface = Ui.REGULAR
+        text.color = Ui.TEXT2
+        text.textSize = size * 0.085f
+        if (unit.isNotEmpty()) canvas.drawText(unit, cx, cy + size * 0.18f, text)
+        text.color = Ui.TEXT3
+        text.textSize = size * 0.075f
+        if (sub.isNotEmpty()) canvas.drawText(sub, cx, cy + size * 0.40f, text)
+    }
+
+    override fun onTouchEvent(e: MotionEvent): Boolean {
+        if (!isEnabled) return false
+        when (e.action) {
+            MotionEvent.ACTION_DOWN -> {
+                parent?.requestDisallowInterceptTouchEvent(true)
+                onTouchStart()
+                pick(e)
+            }
+            MotionEvent.ACTION_MOVE -> pick(e)
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> parent?.requestDisallowInterceptTouchEvent(false)
+        }
+        return true
+    }
+
+    /** Angle du doigt → position ; dans l'ouverture du bas, on reste à l'extrémité la plus proche. */
+    private fun pick(e: MotionEvent) {
+        val size = minOf(width, height).toFloat()
+        val cx = width / 2f
+        val cy = height / 2f + size * 0.04f
+        var deg = Math.toDegrees(Math.atan2((e.y - cy).toDouble(), (e.x - cx).toDouble())).toFloat()
+        var rel = (deg - 135f + 360f) % 360f // 0 = début de l'arc, 270 = fin
+        if (rel > 270f) rel = if (rel < 315f) 270f else 0f
+        val pos = Math.round(rel / 270f * (steps - 1)).coerceIn(0, steps - 1)
+        if (pos != position) onPick(pos)
     }
 }
 

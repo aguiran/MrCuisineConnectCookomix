@@ -93,6 +93,13 @@ class Prefs(context: Context) {
             p.edit().putBoolean("confirmImported", v).commit()
         }
 
+    /** Cuisson manuelle : réglages par molettes tactiles (true) ou par boutons − / + (false). */
+    var manualDials: Boolean
+        get() = p.getBoolean("manualDials", false)
+        set(v) {
+            p.edit().putBoolean("manualDials", v).commit()
+        }
+
     var sound: Boolean
         get() = p.getBoolean("sound", true)
         set(v) {
