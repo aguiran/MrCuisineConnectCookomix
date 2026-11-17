@@ -69,7 +69,7 @@ class CookomixTest {
         assertEquals(120 to 1, machines[4].tempC to machines[4].speed)
         assertEquals(900, machines[4].seconds)
         // Vitesse cuillère : vitesse 1, et le texte ne dit jamais « vitesse 0 ».
-        assertTrue(r.steps.none { it.text.contains("vitesse 0") })
+        assertTrue(r.steps.none { Regex("vitesse 0(?![,.])").containsMatchIn(it.text) })
         // Pétrin 3 min 30 → 2 min + 1 min 30.
         assertEquals(listOf(StepProgram.KNEAD, StepProgram.KNEAD), machines.drop(5).take(2).map { it.program })
         assertEquals(listOf(120, 90), machines.drop(5).take(2).map { it.seconds })
@@ -185,5 +185,59 @@ class CookomixTest {
         assertEquals(Cookomix.Error.LOGIN_REFUSED, Cookomix.parseLogin("""{"code":"[jwt_auth] incorrect_password","message":"x"}""", 403).error)
         assertEquals(Cookomix.Error.LOGIN_UNAVAILABLE, Cookomix.parseLogin("<html>404</html>", 404).error)
         assertEquals(Cookomix.Error.LOGIN_UNAVAILABLE, Cookomix.parseLogin("""{"code":"jwt_auth_bad_config"}""", 500).error)
+    }
+
+    private fun page(vararg steps: String) =
+        """<script type="application/ld+json">{"@type":"Recipe","name":"Essai","recipeIngredient":["Lait - 100 grammes"]}</script>
+        <script>var stepbystep ={"title":"Essai","steps":[${steps.joinToString(",")}]};</script>"""
+
+    private fun mix(speed: String, temp: String = "0", s: Int = 30) =
+        """{"action":"mix","action_verb":"mélanger","mix_duration":"$s","mix_temp":"$temp","mix_speed":"$speed"}"""
+
+    @Test fun whiskIsTrackedForSafety() {
+        // Fouet posé par une étape texte : vitesse limitée à 4, puis la lame revient quand on le retire.
+        val r = Cookomix.parsePage(page(
+            """{"action":"other","action_desc":"Insérer le fouet papillon."}""", mix("6"),
+            """{"action":"other","action_desc":"Retirer le fouet."}""", mix("8")), "u")
+        val m = r.recipe!!.steps.mapNotNull { it.machine }
+        assertEquals(listOf(Accessory.WHISK, Accessory.BLADE), m.map { it.accessory })
+        assertEquals(listOf(4, 8), m.map { it.speed })
+        assertEquals(Cookomix.Compat.ADAPTED, r.compat)
+        // « crème fouettée », « fouetter » : pas l'accessoire.
+        val cream = Cookomix.parsePage(page("""{"action":"add","action_verb":"Ajouter","action_desc":"la crème fouettée, puis fouetter"}""", mix("8")), "u")
+        assertEquals(Accessory.BLADE, cream.recipe!!.steps.mapNotNull { it.machine }.single().accessory)
+        // Turbo avec le fouet en place : le réglage garde le fouet, la sécurité de Toque le refuse.
+        val turbo = Cookomix.parsePage(page("""{"action":"add-accessory","addaccessory":"butterfly-whisk","action_desc":"Ajouter le fouet."}""", mix("turbo", s = 2)), "u")
+        val t = turbo.recipe!!.steps.mapNotNull { it.machine }.single()
+        assertEquals(StepProgram.TURBO, t.program)
+        assertEquals(Accessory.WHISK, t.accessory)
+        assertTrue(!t.valid)
+        // Accessoire inconnu : recette refusée plutôt que de deviner.
+        val unknown = Cookomix.parsePage(page("""{"action":"add-accessory","addaccessory":"spiralizer","action_desc":"Ajouter l'accessoire."}""", mix("4")), "u")
+        assertEquals(Cookomix.Compat.INCOMPATIBLE, unknown.compat)
+    }
+
+    @Test fun halfSpeedsAreFlagged() {
+        val r = Cookomix.parsePage(page(mix("3.5")), "u")
+        assertEquals(Cookomix.Compat.ADAPTED, r.compat)
+        val st = r.recipe!!.steps.single()
+        assertEquals(4, st.machine!!.speed)
+        assertTrue(st.text, st.text.endsWith("(Thermomix : 30 s / vitesse 3,5)"))
+        // Cuillère → 1 : équivalence documentée, pas une adaptation, mais le réglage d'origine est rappelé.
+        val spoon = Cookomix.parsePage(page(mix("0", "100")), "u")
+        assertEquals(Cookomix.Compat.OK, spoon.compat)
+        assertTrue(spoon.recipe!!.steps.single().text.endsWith("vitesse cuillère)"))
+    }
+
+    @Test fun unparsableSettingIsUnreadable() {
+        for (bad in listOf(
+            """{"action":"mix","action_verb":"cuire","mix_duration":"1:30","mix_temp":"100","mix_speed":"1"}""",
+            """{"action":"mix","action_verb":"cuire","mix_duration":"90","mix_temp":"100","mix_speed":""}""",
+            """{"action":"mix","action_verb":"cuire","mix_duration":"90","mix_speed":"1"}""",
+        )) assertEquals(bad, Cookomix.Compat.UNREADABLE, Cookomix.parsePage(page(bad), "u").compat)
+    }
+
+    @Test fun entities() {
+        assertEquals("L’été 😀 &#39;", app.toque.core.recipes.McOnline.plain("L&rsquo;&#233;t&#233; &#128512; &amp;#39;"))
     }
 }

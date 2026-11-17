@@ -5,8 +5,17 @@
 Ce guide part de zéro : pas besoin de savoir programmer. Il faut un Mac, un câble, un tournevis et
 1 à 2 heures (surtout de l'attente). **Lisez-le une fois en entier avant de commencer.**
 
+Il installe **Toque avec les recettes Cookomix**, depuis ce dépôt
+([aguiran/MrCuisineConnectCookomix](https://github.com/aguiran/MrCuisineConnectCookomix)) : le script
+télécharge Toque depuis ses [releases](https://github.com/aguiran/MrCuisineConnectCookomix/releases/latest),
+et les mises à jour viennent ensuite de là.
+
 Sur un PC Windows, ce guide ne s'applique pas : suivez celui du
 [dépôt d'origine](https://github.com/Wuki60/MrCuisineVibeConnect/blob/main/docs/INSTALLATION.fr.md).
+Il installe le Toque d'origine, **sans Cookomix**, qui se met à jour depuis le dépôt d'origine.
+À la fin, installez par-dessus le Toque de ce dépôt (même signature, rien n'est perdu) :
+téléchargez `Toque-X.Y.Z.apk` de la [dernière release](https://github.com/aguiran/MrCuisineConnectCookomix/releases/latest)
+puis `adb install -r Toque-X.Y.Z.apk`. Les mises à jour suivantes viendront de ce dépôt.
 
 ## Sommaire
 
@@ -45,6 +54,10 @@ Sur un PC Windows, ce guide ne s'applique pas : suivez celui du
   jamais, gardez-en une copie.
 - Toque tourne au quotidien sur deux robots : un installé depuis Windows (octobre 2026), un depuis
   un Mac (novembre 2026). C'est peu : à vos risques.
+- **La version avec Cookomix (0.6.x) n'a pas encore tourné sur un robot.** Elle ne change rien au
+  pilotage du moteur ni aux règles de sécurité de Toque : les réglages des recettes Cookomix sont
+  convertis pour le MCC, puis contrôlés par les mêmes sécurités que les recettes Lidl, et chacun
+  est à confirmer avant d'être lancé. Vérifiez quand même chaque réglage les premières fois.
 
 ### Les 3 règles à retenir
 
@@ -81,13 +94,13 @@ attendez qu'elle se termine (le curseur revient).
    ```
    brew install python libusb
    ```
-3. **Télécharger ce dépôt** dans le dossier `MrCuisineVibeConnect` de votre dossier personnel :
+3. **Télécharger ce dépôt** dans le dossier `MrCuisineConnectCookomix` de votre dossier personnel :
    ```
-   git clone https://github.com/flexbox/MrCuisineVibeConnect.git ~/MrCuisineVibeConnect
+   git clone https://github.com/aguiran/MrCuisineConnectCookomix.git ~/MrCuisineConnectCookomix
    ```
 4. **Aller dans ce dossier** :
    ```
-   cd ~/MrCuisineVibeConnect
+   cd ~/MrCuisineConnectCookomix
    ```
    Chaque fois que vous rouvrez le Terminal, retapez cette commande avant les autres.
 
@@ -107,7 +120,7 @@ abonnement Claude payant (Pro ou plus) : l'offre gratuite ne suffit pas.
    puis fermez et rouvrez le Terminal. `claude --version` doit afficher un numéro de version.
 2. Lancez-le dans le dossier du dépôt :
    ```
-   cd ~/MrCuisineVibeConnect
+   cd ~/MrCuisineConnectCookomix
    claude
    ```
    La première fois, il ouvre le navigateur pour vous connecter à votre compte Claude.
@@ -288,6 +301,21 @@ d'origine (elles remplacent celles du site). Si elle n'en a pas encore, **« Ouv
 d'origine »** la laisse se synchroniser avec les serveurs Lidl ; revenez avec le bouton **« Retour à Toque »**. Si cet import échoue, le fichier
 `Android/data/app.toque/files/diagnostic-recettes.txt` décrit la base d'origine.
 
+### Les recettes Cookomix
+
+**Réglages › Recettes Cookomix › Synchroniser Cookomix** (robot en Wi-Fi). Toque lit les recettes
+de cookomix.com, écrites pour le Thermomix, et garde celles que le MCC peut faire, avec leurs
+réglages convertis : environ une heure la première fois (une page par seconde), ensuite seulement
+les nouvelles ou modifiées. Elles portent le mot-clé « Cookomix » ; celles dont un réglage a dû être
+adapté portent aussi « Adaptée MCC » et le disent dans leurs notes. Comme pour les recettes Lidl,
+chaque réglage est à confirmer avant d'être lancé.
+
+Le compte Cookomix (email ou pseudo + mot de passe) est **facultatif** : il ne sert qu'à importer
+votre carnet de recettes dans les favoris. Seul un jeton de connexion est enregistré sur le robot.
+
+Si la synchro affiche un code **CKX-01** à **CKX-10** (site en panne, format changé…), les recettes
+déjà enregistrées restent disponibles : voir [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md).
+
 ### Au quotidien
 
 - Toque s'ouvre tout seul au démarrage du robot.
@@ -295,7 +323,7 @@ d'origine »** la laisse se synchroniser avec les serveurs Lidl ; revenez avec l
   d'origine, les paramètres Android), le bouton **« Retour à Toque »** reste affiché par-dessus
   (on peut le déplacer).
 - Paramètres Android : 5 appuis rapides sur l'heure en haut à droite.
-- Mises à jour : **Réglages › Mises à jour** installe les nouvelles versions.
+- Mises à jour : **Réglages › Mises à jour** installe les nouvelles versions de ce dépôt.
 - Depuis le Mac, par Wi-Fi : `~/Toque/platform-tools/adb connect <adresse IP du robot>:5555`, puis
   `~/Toque/platform-tools/adb shell am start -n app.toque/.ui.MainActivity` ouvre Toque.
 
@@ -321,7 +349,7 @@ d'origine »** la laisse se synchroniser avec les serveurs Lidl ; revenez avec l
 
 Toujours bloqué ? Envoyez le fichier `~/Toque/setup-log.txt` (et `~/Toque/mtk-<étape>-out.txt`
 pour `backup` ou `flash-twrp`) à qui vous aide, ou ouvrez une
-[issue](https://github.com/flexbox/MrCuisineVibeConnect/issues).
+[issue](https://github.com/aguiran/MrCuisineConnectCookomix/issues).
 
 ### Si le Mac ne joint jamais le robot en mode téléchargement
 

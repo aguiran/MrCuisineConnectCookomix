@@ -72,7 +72,7 @@ person this before starting.
 No driver to install, no SP Flash Tool, no change to macOS security.
 
 The person usually comes from part 2 of [docs/INSTALLATION.md](docs/INSTALLATION.md) (Homebrew,
-`brew install python libusb`, this repository cloned into `~/MrCuisineVibeConnect`) and keeps that
+`brew install python libusb`, this repository cloned into `~/MrCuisineConnectCookomix`) and keeps that
 guide open: its part 3b shows them what each step looks like. If Homebrew is missing, the person
 installs it themselves (it asks for their Mac password): give them the command from that part.
 
@@ -121,7 +121,11 @@ step, have the person switch it off. `ls /dev/cu.usbmodem*` lists nothing once i
 | 8 | first run | person | Empty bowl: Settings › Machine › Real machine › Apply, badge **Ready**, manual cooking 10 s speed 2. |
 | 9 | `wifi` | agent | ADB over Wi-Fi (port 5555), so the cable can go and the cover go back on. |
 
-Then: Toque › Settings › Lidl recipes › **Sync** (about 15 minutes the first time).
+Then: Toque › Settings › Lidl recipes › **Sync** (about 15 minutes the first time), and
+Settings › Cookomix recipes › **Sync Cookomix** (about an hour the first time).
+
+This fork's Toque (0.6.x, with the Cookomix recipes) has **not run on a robot yet**: tell the person,
+and ask them to check each imported setting before starting it the first times.
 
 ### Power-on rules (the source of most confusion)
 

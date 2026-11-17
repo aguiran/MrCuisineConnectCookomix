@@ -30,7 +30,17 @@ object Http {
             c.outputStream.use { it.write(json.toByteArray(Charsets.UTF_8)) }
             val code = c.responseCode
             val stream = if (code >= 400) c.errorStream else c.inputStream
-            val body = stream?.use { input -> String(input.readBytes(), Charsets.UTF_8) }.orEmpty()
+            val body = stream?.use { input ->
+                val out = ByteArrayOutputStream()
+                val buf = ByteArray(8192)
+                while (true) {
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    out.write(buf, 0, n)
+                    if (out.size() > 256 * 1024) throw IOException(tr("réponse trop grande"))
+                }
+                String(out.toByteArray(), Charsets.UTF_8)
+            }.orEmpty()
             return Raw(code, body)
         } finally {
             c.disconnect()

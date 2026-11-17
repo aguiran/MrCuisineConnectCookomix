@@ -164,7 +164,10 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         // 3. Le catalogue Cookomix suit le site et le réglage « recettes adaptées ».
         val slugs = entries.map { it.slug }.toHashSet()
         index.keys.retainAll(slugs)
-        val keep = index.values.mapNotNull { Mark.of(it) }.filter { wanted(it) && it.id.isNotEmpty() }.map { it.id }.toHashSet()
+        // Une recette adaptée mise en favori reste, même si l'option « recettes adaptées » est coupée.
+        val keep = index.values.mapNotNull { Mark.of(it) }
+            .filter { it.id.isNotEmpty() && (wanted(it) || (it.status == ADAPTED && repo.isFavorite(it.id))) }
+            .map { it.id }.toHashSet()
         repo.removeAllExcept(keep, rebuild = false, scope = RecipeRepo.Scope.COOKOMIX)
         writeIndex(index)
         repo.refresh()

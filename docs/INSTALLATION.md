@@ -5,8 +5,17 @@
 This guide starts from zero: no programming needed. You need a Mac, a cable, a screwdriver and
 1 to 2 hours (mostly waiting). **Read it once from start to end before you begin.**
 
+It installs **Toque with the Cookomix recipes** from this repository
+([aguiran/MrCuisineConnectCookomix](https://github.com/aguiran/MrCuisineConnectCookomix)): the script
+downloads Toque from its [releases](https://github.com/aguiran/MrCuisineConnectCookomix/releases/latest),
+and later updates come from there.
+
 On a Windows PC, this guide does not apply: follow the one in the
 [original repository](https://github.com/Wuki60/MrCuisineVibeConnect/blob/main/docs/INSTALLATION.md).
+It installs the original Toque, **without Cookomix**, which updates from the original repository.
+At the end, install this repository's Toque over it (same signature, nothing is lost): download
+`Toque-X.Y.Z.apk` from the [latest release](https://github.com/aguiran/MrCuisineConnectCookomix/releases/latest)
+and run `adb install -r Toque-X.Y.Z.apk`. Later updates then come from this repository.
 
 ## Contents
 
@@ -80,13 +89,13 @@ finish (the cursor comes back).
    ```
    brew install python libusb
    ```
-3. **Download this repository** into a `MrCuisineVibeConnect` folder in your home folder:
+3. **Download this repository** into a `MrCuisineConnectCookomix` folder in your home folder:
    ```
-   git clone https://github.com/flexbox/MrCuisineVibeConnect.git ~/MrCuisineVibeConnect
+   git clone https://github.com/aguiran/MrCuisineConnectCookomix.git ~/MrCuisineConnectCookomix
    ```
 4. **Go into that folder**:
    ```
-   cd ~/MrCuisineVibeConnect
+   cd ~/MrCuisineConnectCookomix
    ```
    Each time you open Terminal again, type this command before the others.
 
@@ -106,7 +115,7 @@ Claude plan (Pro or higher): the free plan is not enough.
    then close Terminal and open it again. `claude --version` must show a version number.
 2. Start it in the repository folder:
    ```
-   cd ~/MrCuisineVibeConnect
+   cd ~/MrCuisineConnectCookomix
    claude
    ```
    The first time, it opens the browser to sign in to your Claude account.
@@ -285,13 +294,23 @@ replace the ones from the site). If it has none yet, **"Open the stock app"** le
 Lidl's servers; come back with the **"Back to Toque"** button. If that import fails, the file
 `Android/data/app.toque/files/diagnostic-recettes.txt` describes the stock database.
 
+### Cookomix recipes
+
+**Settings › Cookomix recipes › Sync Cookomix** (robot on Wi-Fi). Toque reads the cookomix.com
+recipes, written for the Thermomix, and keeps the ones the MCC can make, with their settings
+converted: about an hour the first time (one page per second), then only new or changed ones. The
+Cookomix account is optional (it only imports your cookbook into favourites). Error codes
+CKX-01 to CKX-10: [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md) (in French); saved recipes are never
+deleted when a sync fails. **This version (0.6.x) has not run on a robot yet**: check each setting
+the first times.
+
 ### Every day
 
 - Toque opens by itself when the robot starts.
 - The robot has no Home or Back button: when another app is open (the stock app, the Android
   settings), the **"Back to Toque"** button stays on top (you can move it).
 - Android settings: tap the clock at the top right 5 times quickly.
-- Updates: **Settings › Updates** installs new versions.
+- Updates: **Settings › Updates** installs new versions from this repository.
 - From the Mac, over Wi-Fi: `~/Toque/platform-tools/adb connect <robot IP address>:5555`, then
   `~/Toque/platform-tools/adb shell am start -n app.toque/.ui.MainActivity` opens Toque.
 
@@ -317,7 +336,7 @@ Lidl's servers; come back with the **"Back to Toque"** button. If that import fa
 
 Still stuck? Send `~/Toque/setup-log.txt` (and `~/Toque/mtk-<step>-out.txt` for `backup` or
 `flash-twrp`) to whoever helps you, or open an
-[issue](https://github.com/flexbox/MrCuisineVibeConnect/issues).
+[issue](https://github.com/aguiran/MrCuisineConnectCookomix/issues).
 
 ### If the Mac never reaches the robot in download mode
 

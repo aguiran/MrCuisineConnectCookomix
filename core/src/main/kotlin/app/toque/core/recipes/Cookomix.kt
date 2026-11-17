@@ -44,6 +44,10 @@ object Cookomix {
     private const val MAX_TEMP_C = 130
     private const val MAX_SPEED_HEATED = 3
     private const val MAX_SPEED_REVERSE = 3
+    private val WHISK_KEYS = setOf("butterfly-whisk", "butterfly", "whisk", "papillon", "fouet")
+    /** Accessoires sans effet sur les limites de vitesse (Varoma, panier). */
+    private val WHISK_WORD = Regex("\\bfouet\\b")
+    private val NEUTRAL_ACCESSORIES = setOf("varoma", "basket", "panier", "steamer")
 
     /** Verdict d'une page : UNREADABLE = format inattendu (site changé ?), pas une recette incompatible. */
     enum class Compat { OK, ADAPTED, INCOMPATIBLE, UNREADABLE }
@@ -160,6 +164,12 @@ object Cookomix {
 
     private fun unreadable(reason: String) = Result(null, Compat.UNREADABLE, listOf(reason))
 
+    /** Réglage robot lisible : durée en secondes (nombre), vitesse et température présentes. */
+    private fun wellFormedMix(m: Map<String, Any?>): Boolean {
+        val d = m["mix_duration"]?.toString()?.trim()?.toDoubleOrNull() ?: return false
+        return d >= 0 && !m["mix_speed"]?.toString().isNullOrBlank() && m["mix_temp"] != null
+    }
+
     private fun parsePageOrThrow(html: String, url: String): Result {
         val ld = jsonLdRecipe(html) ?: return unreadable(tr("page sans recette"))
         val sbs = stepByStep(html) ?: return unreadable(tr("pas de pas-à-pas"))
@@ -168,7 +178,7 @@ object Cookomix {
         val rawSteps = sbs["steps"].list().map { it.obj() }
         if (rawSteps.isEmpty() || rawSteps.any { it.str("action").isNullOrEmpty() }) return unreadable(tr("étapes au format inattendu"))
         // Un réglage robot doit avoir sa durée et sa vitesse : sinon c'est le format qui a changé.
-        if (rawSteps.any { it.str("action") == "mix" && (it["mix_duration"] == null || it["mix_speed"] == null) })
+        if (rawSteps.any { it.str("action") == "mix" && !wellFormedMix(it) })
             return unreadable(tr("réglages au format inattendu"))
 
         val conv = Converter()
@@ -346,6 +356,16 @@ object Cookomix {
         private var accessory = Accessory.BLADE
         private var preparation = ""
 
+        private fun whiskFromText(desc: String) {
+            val d = desc.lowercase()
+            // Le mot « fouet » seul : « fouetter », « crème fouettée » ne parlent pas de l'accessoire.
+            if (!WHISK_WORD.containsMatchIn(d)) return
+            when {
+                Regex("\\b(retirer|retirez|enlever|enlevez|ôter|ôtez|sortir|sortez)\\b").containsMatchIn(d) -> accessory = Accessory.BLADE
+                Regex("\\b(insérer|insérez|mettre|mettez|placer|placez|ajouter|ajoutez|fixer|fixez|monter|montez)\\b").containsMatchIn(d) -> accessory = Accessory.WHISK
+            }
+        }
+
         fun adapted(reason: String) {
             if (compat == Compat.OK) compat = Compat.ADAPTED
             reasons += reason
@@ -365,12 +385,19 @@ object Cookomix {
                     "$prep : "
                 } else ""
                 val desc = adaptText(s.str("action_desc"))
+                // Le fouet compte pour la sécurité (vitesse 4 au plus, pas de Turbo) : on le suit aussi
+                // quand une étape ordinaire le met ou le retire (« Insérer le fouet », « Retirer le fouet »).
+                if (s.str("action") != "add-accessory" && s.str("action") != "remove-accessory") whiskFromText(desc)
                 when (s.str("action")) {
                     "mix" -> mix(s, header + pending.joinToString(" ").let { if (it.isEmpty()) "" else "$it " })
                     "addtop", "addtop-w", "addtop-basket" -> if (desc.isNotEmpty()) pending += sentence(header + desc)
                     "add-accessory" -> {
-                        when (s.str("addaccessory")?.lowercase()) {
-                            "butterfly-whisk", "whisk", "papillon" -> accessory = Accessory.WHISK
+                        val key = s.str("addaccessory")?.trim()?.lowercase().orEmpty()
+                        when {
+                            key in WHISK_KEYS || WHISK_WORD.containsMatchIn(desc.lowercase()) -> accessory = Accessory.WHISK
+                            key in NEUTRAL_ACCESSORIES -> {}
+                            // Accessoire inconnu : impossible de savoir s'il limite la vitesse, on refuse la recette.
+                            else -> incompatible(tr("accessoire « %s » inconnu", key.ifEmpty { desc }))
                         }
                         flush()
                         if (desc.isNotEmpty()) out += Step(header + desc)
@@ -378,7 +405,7 @@ object Cookomix {
                     "remove-accessory" -> {
                         // Le fouet retiré, la lame redevient l'accessoire (Varoma et panier n'y changent rien).
                         val d = desc.lowercase()
-                        if ("fouet" in d || ("vapeur" !in d && "panier" !in d)) accessory = Accessory.BLADE
+                        if (WHISK_WORD.containsMatchIn(d) || ("vapeur" !in d && "panier" !in d)) accessory = Accessory.BLADE
                         flush()
                         if (desc.isNotEmpty()) out += Step(header + desc)
                     }
@@ -454,7 +481,7 @@ object Cookomix {
                 return
             }
             if (speedRaw == "turbo") {
-                out += Step(text, StepMachine(program = StepProgram.TURBO, seconds = seconds, pulses = maxOf(1, seconds)), needsReview = true)
+                out += Step(text, StepMachine(program = StepProgram.TURBO, seconds = seconds, pulses = maxOf(1, seconds), accessory = accessory), needsReview = true)
                 return
             }
 
@@ -470,6 +497,11 @@ object Cookomix {
             // Vitesse cuillère (codée 0 par Cookomix, 40 tr/min sur le Thermomix) ou 0,5 → vitesse 1,
             // la plus lente du MCC (0 l'arrête) ; les recettes Lidl mijotent aussi en vitesse 1 inverse.
             var speed = Math.ceil(speedF).toInt().coerceIn(1, 10)
+            if (speed.toDouble() != speedF) {
+                // Demi-vitesse arrondie au-dessus : signalée (la cuillère → 1 est l'équivalence documentée).
+                if (speedF >= 1) adapted(tr("vitesse %s arrondie à %d", speedRaw.replace('.', ','), speed))
+                changed = true
+            }
 
             var tempC: Int
             when {
