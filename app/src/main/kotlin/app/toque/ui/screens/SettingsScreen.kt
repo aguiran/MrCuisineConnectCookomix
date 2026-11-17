@@ -353,6 +353,11 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     }
 
     private fun sync(online: Boolean) {
+        if (online && OnlineSync.isRunning) {
+            a.toast(tr("Synchronisation déjà en cours"), Ui.WARN)
+            refreshSync()
+            return
+        }
         if (syncing) return
         if (!online && a.prefs.mode != Prefs.Mode.HARDWARE) {
             a.toast(tr("Disponible une fois Toque installé sur le robot (mode Machine réelle)"), Ui.WARN)
@@ -397,12 +402,23 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     }
 
     private fun refreshCookomix() {
+        if (CookomixSync.isRunning) {
+            // Synchro lancée avant d'ouvrir cet écran (ou la nuit) : on suit sa progression.
+            ckxText.text = CookomixSync.current.ifEmpty { tr("Synchronisation Cookomix en cours…") }
+            ckxText.postDelayed({ if (ckxText.isAttachedToWindow) refreshCookomix() }, 1_000)
+            return
+        }
         val last = a.prefs.cookomixLastResult
         ckxText.text = if (last.isEmpty()) tr("Jamais synchronisé") else tr("Dernière synchro le %s", last)
     }
 
     private fun syncCookomix() {
-        if (ckxBusy || CookomixSync.isRunning) return
+        if (CookomixSync.isRunning) {
+            a.toast(tr("Synchronisation Cookomix déjà en cours"), Ui.WARN)
+            refreshCookomix()
+            return
+        }
+        if (ckxBusy) return
         ckxBusy = true
         ckxText.text = tr("Synchronisation Cookomix en cours…")
         Thread {
@@ -472,6 +488,12 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     }
 
     private fun refreshSync() {
+        if (OnlineSync.isRunning) {
+            // Synchro lancée avant d'ouvrir cet écran (ou la nuit) : on suit sa progression.
+            syncText.text = OnlineSync.current.ifEmpty { tr("Synchronisation en cours… (quelques minutes)") }
+            syncText.postDelayed({ if (syncText.isAttachedToWindow) refreshSync() }, 1_000)
+            return
+        }
         val last = a.prefs.lastSyncResult
         syncText.text = (if (last.isEmpty()) tr("Jamais synchronisé") else tr("Dernière synchro le %s", last)) +
             "\n" + tr("%d recettes dans Toque", a.app.recipes.count)
@@ -581,6 +603,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         mode = a.prefs.mode
         renderModes()
         if (!syncing) refreshSync()
+        if (::ckxText.isInitialized && !ckxBusy) refreshCookomix()
     }
 
     override fun onSnapshot(s: Snapshot) {

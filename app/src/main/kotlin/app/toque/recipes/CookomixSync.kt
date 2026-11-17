@@ -52,11 +52,13 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
     fun sync(progress: (String) -> Unit = {}): LidlSync.Report {
         if (!running.compareAndSet(false, true)) return LidlSync.Report(false, tr("Synchronisation déjà en cours"))
         try {
-            return finish(run(progress))
+            // Progression partagée : un écran Réglages rouvert pendant la synchro la retrouve.
+            return finish(run { msg -> current = msg; progress(msg) })
         } catch (e: Exception) {
             log.crash("cookomix", e)
             return finish(failure(Cookomix.Error.INTERNAL, e.message ?: e.javaClass.simpleName))
         } finally {
+            current = ""
             running.set(false)
         }
     }
@@ -217,8 +219,17 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         return LidlSync.Report(slugs.isNotEmpty(), msg, added)
     }
 
+    /** Recettes enregistrées depuis le dernier rechargement de la liste. */
+    private var unseen = 0
+
     private fun save(batch: MutableList<Recipe>, index: Map<String, String>) {
-        if (batch.isNotEmpty()) repo.upsertAll(ArrayList(batch), rebuild = false)
+        if (batch.isNotEmpty()) {
+            unseen += batch.size
+            // La première synchro dure environ une heure : les recettes apparaissent par paquets
+            // dans la liste au lieu d'attendre la fin.
+            repo.upsertAll(ArrayList(batch), rebuild = unseen >= REFRESH_EVERY)
+            if (unseen >= REFRESH_EVERY) unseen = 0
+        }
         batch.clear()
         writeIndex(index)
     }
@@ -285,9 +296,14 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         private const val UNREADABLE = "illisible"
         /** Une page toutes les ~1,2 s : environ 50 minutes pour tout le site la première fois. */
         private const val PAGE_PAUSE_MS = 1_200L
+        private const val REFRESH_EVERY = 200
         private val running = AtomicBoolean(false)
 
         val isRunning: Boolean get() = running.get()
+
+        /** Dernier message de progression de la synchro en cours (vide sinon). */
+        @Volatile var current: String = ""
+            private set
 
         /** Connexion par email (ou pseudo) et mot de passe : seul le jeton est gardé. Renvoie (ok, message). */
         fun login(prefs: Prefs, user: String, password: String): Pair<Boolean, String> {
