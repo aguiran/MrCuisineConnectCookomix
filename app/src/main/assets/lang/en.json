@@ -367,7 +367,7 @@
   "Terminer": "Finish",
   "Terminé": "Finished",
   "Tiédir": "Warm",
-  "Toque %s · protocole d'après le Monsieur Cuisine Developer SDK (licence MIT). Projet indépendant, non affilié à Lidl ni à SilverCrest.": "Toque %s · protocol based on the Monsieur Cuisine Developer SDK (MIT licence). Independent project, not affiliated with Lidl or SilverCrest.",
+  "Toque %s · protocole d'après le Monsieur Cuisine Developer SDK (licence MIT). Projet indépendant, non affilié à Lidl, SilverCrest ni Cookomix.": "Toque %s · protocol based on the Monsieur Cuisine Developer SDK (MIT licence). Independent project, not affiliated with Lidl, SilverCrest or Cookomix.",
   "Toque est à jour.": "Toque is up to date.",
   "Toque libère le moteur et lance l'appli Monsieur Cuisine d'origine, qui se synchronise avec les serveurs Lidl comme d'habitude.\n\nRevenez ensuite à Toque avec le bouton « Retour à Toque » affiché par-dessus (vous pouvez le déplacer) : les recettes seront importées automatiquement.": "Toque releases the motor and opens the stock Monsieur Cuisine app, which syncs with Lidl's servers as usual.\n\nThen come back to Toque with the “Back to Toque” button shown on top of it (you can drag it): the recipes will be imported automatically.",
   "Toque libère le moteur, rend l'accès à l'appli Monsieur Cuisine d'origine et passe en mode Démo. Toque ne s'ouvrira plus au démarrage du robot.": "Toque releases the motor, gives access back to the stock Monsieur Cuisine app and switches to Demo mode. Toque will no longer open when the robot starts.",
