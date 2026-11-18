@@ -178,7 +178,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         tools.addView(link(tr("Revenir à l'appli d'origine")) { restoreVendor() })
         val version = try { a.packageManager.getPackageInfo(a.packageName, 0).versionName } catch (_: Exception) { "?" }
         tools.addView(Ui.text(c, tr("Toque %s · protocole d'après le Monsieur Cuisine Developer SDK (licence MIT). " +
-            "Projet indépendant, non affilié à Lidl ni à SilverCrest.", version), 14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 12))
+            "Projet indépendant, non affilié à Lidl, SilverCrest ni Cookomix.", version), 14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 12))
 
         return Ui.scroll(c, col)
     }
