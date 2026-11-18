@@ -107,6 +107,13 @@ class Prefs(context: Context) {
             p.edit().putString("recipeOrigin", v).commit()
         }
 
+    /** Mise en veille de l'écran après ce nombre de minutes sans contact (0 : jamais). */
+    var screenSleepMinutes: Int
+        get() = p.getInt("screenSleepMinutes", 10)
+        set(v) {
+            p.edit().putInt("screenSleepMinutes", v).commit()
+        }
+
     var sound: Boolean
         get() = p.getBoolean("sound", true)
         set(v) {

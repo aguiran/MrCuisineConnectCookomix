@@ -103,6 +103,13 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         safety.addView(Ui.text(c, tr("Les réglages qui se suivent sans geste à faire entre eux partent ensemble d'un seul appui sur Lancer : la lame passe directement à la vitesse et à la température suivantes."),
             15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
         safety.addView(toggle(tr("Sons"), a.prefs.sound) { a.prefs.sound = it }, Ui.lp(t = 10))
+        safety.addView(Ui.text(c, tr("Mise en veille de l'écran"), 18f, Ui.TEXT), Ui.lp(t = 14))
+        val sleepOptions = listOf("5" to tr("Après 5 min sans contact"), "10" to tr("Après 10 min sans contact"),
+            "30" to tr("Après 30 min sans contact"), "0" to tr("Jamais"))
+        safety.addView(dropdown(sleepOptions, a.prefs.screenSleepMinutes.toString()) { a.prefs.screenSleepMinutes = it.toInt() },
+            Ui.lp(Ui.MATCH, Ui.u(58), t = 6))
+        safety.addView(Ui.text(c, tr("Écran noir avec l'heure ; un toucher ou le bouton rotatif le réveille. Jamais pendant un programme, une alerte ou une synchro de recettes."),
+            15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
 
         // ---- Langue (titre bilingue : trouvable quelle que soit la langue affichée)
         val language = section(right, "Langue · Language", Icon.Kind.INFO)
