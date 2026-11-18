@@ -136,7 +136,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         val n = repo.count
         recipesSub.text = when {
             !repo.loaded -> tr("Chargement…")
-            n == 0 -> tr("Aucune recette Lidl pour l'instant")
+            n == 0 -> tr("Aucune recette pour l'instant")
             else -> {
                 val ckx = repo.index.entries.count { it.id.startsWith(app.toque.core.recipes.Cookomix.ID_PREFIX) }
                 if (ckx == 0) tr("%d recettes Lidl", n) else tr("%d Lidl · %d Cookomix", n - ckx, ckx)
