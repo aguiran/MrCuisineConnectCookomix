@@ -164,7 +164,7 @@ class Updater(private val context: Context) {
     }
 
     private fun open(url: String, accept: String): HttpURLConnection {
-        val c = URL(url).openConnection() as HttpURLConnection
+        val c = app.toque.Tls.apply(URL(url).openConnection() as HttpURLConnection)
         c.connectTimeout = 15_000
         c.readTimeout = 30_000
         c.instanceFollowRedirects = true
