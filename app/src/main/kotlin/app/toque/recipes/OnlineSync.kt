@@ -184,7 +184,7 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
         var attempt = 0
         while (true) {
             attempt++
-            val c = URL(url).openConnection() as HttpURLConnection
+            val c = app.toque.Tls.apply(URL(url).openConnection() as HttpURLConnection)
             try {
                 c.connectTimeout = 20_000
                 c.readTimeout = 30_000
