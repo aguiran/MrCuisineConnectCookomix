@@ -52,8 +52,11 @@ l'écran du robot.
 - **Mise en veille de l'écran** : après 5, 10 (par défaut) ou 30 min sans contact, écran noir avec
   l'heure ; un toucher ou le bouton rotatif le réveille. Jamais pendant un programme, une alerte ou
   une synchro de recettes.
+- **Confirmation des réglages au choix** : *Réglages › Sécurité › Faire confirmer les réglages des
+  recettes* (activée par défaut) ; désactivée, les réglages hors limites restent refusés.
 - **Recettes par source** : onglets Tout / Lidl / Cookomix (mémorisés) et page « Catégories… »
-  avec toutes les catégories et leur nombre de recettes.
+  avec toutes les catégories et leur nombre de recettes ; sur l'accueil, une croix oublie la recette
+  commencée.
 - **Auteur, notes et avis** : chaque recette affiche qui l'a publiée et sa note sur le site, et la
   fiche charge les commentaires des utilisateurs (avec les réponses de Monsieur Cuisine).
 - **Recherche qui marche** : insensible aux accents, aux pluriels et aux fautes de frappe
@@ -96,7 +99,7 @@ Thermomix est converti pour le MCC dans
 Sur toutes les recettes du site (2 437, novembre 2026) : 1 752 compatibles telles quelles, 685
 adaptées, 0 incompatible. Les recettes adaptées portent le mot-clé « Adaptée MCC » et expliquent
 dans leurs notes ce qui a changé. Comme pour les recettes Lidl, chaque réglage importé est confirmé
-avant d'être lancé.
+avant d'être lancé (sauf si cette option est désactivée).
 
 *Réglages › Recettes Cookomix › Synchroniser Cookomix* : une heure ou plus la première fois (une
 page toutes les 1 à 2 secondes, photos comprises), puis seulement les recettes nouvelles ou

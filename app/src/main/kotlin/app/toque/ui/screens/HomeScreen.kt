@@ -60,6 +60,18 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         resumeCard.addView(Icon(c, Icon.Kind.PLAY, Ui.ACCENT), LinearLayout.LayoutParams(Ui.u(26), Ui.u(26)).apply { rightMargin = Ui.u(14) })
         resumeText = Ui.ellipsize(Ui.text(c, "", 19f, Ui.TEXT, Ui.MEDIUM), 2)
         resumeCard.addView(resumeText, LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
+        // Croix : oublier la recette commencée sans avoir à la terminer.
+        val forget = Ui.horizontal(c, android.view.Gravity.CENTER)
+        forget.addView(Icon(c, Icon.Kind.CLOSE, Ui.TEXT2), LinearLayout.LayoutParams(Ui.u(22), Ui.u(22)))
+        forget.background = Ui.pressable(Ui.round(0, 24f), 24f)
+        forget.contentDescription = tr("Ne plus proposer de reprendre cette recette")
+        forget.isClickable = true
+        forget.setOnClickListener {
+            a.prefs.guidedRecipe = ""
+            a.prefs.guidedStep = 0
+            refresh()
+        }
+        resumeCard.addView(forget, LinearLayout.LayoutParams(Ui.u(52), Ui.u(52)).apply { leftMargin = Ui.u(8) })
         resumeCard.isClickable = true
         resumeCard.setOnClickListener {
             val r = a.app.recipes.get(a.prefs.guidedRecipe)

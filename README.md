@@ -52,8 +52,10 @@ screen.
   remembered), with the same safety limits; while cooking, one step per gesture.
 - **Screen sleep**: after 5, 10 (default) or 30 min without touch, black screen with the time; a
   touch or the knob wakes it. Never during a program, an alert or a recipe sync.
+- **Optional setting confirmation**: *Settings › Safety › Ask to confirm recipe settings* (on by
+  default); when off, settings beyond the robot's limits are still refused.
 - **Recipes by source**: All / Lidl / Cookomix tabs (remembered) and a "Categories…" page listing
-  every category with its recipe count.
+  every category with its recipe count; on the home screen, a cross forgets the recipe in progress.
 - **Author, ratings and reviews**: each recipe shows who published it and its rating on the site,
   and the recipe page loads the users' comments (with Monsieur Cuisine's replies).
 - **Search that works**: ignores accents, plurals and typos ("bechamle", "risoto").
@@ -94,7 +96,7 @@ the MCC in [`Cookomix.kt`](core/src/main/kotlin/app/toque/core/recipes/Cookomix.
 
 On all the recipes on the site (2,437, November 2026): 1,752 compatible as is, 685 adapted, 0
 incompatible. Adapted recipes are tagged "Adaptée MCC" and their notes say what changed. As for Lidl
-recipes, each imported setting is confirmed before it starts.
+recipes, each imported setting is confirmed before it starts (unless that option is turned off).
 
 *Settings › Cookomix recipes › Sync Cookomix*: an hour or more the first time (one page every 1–2 s,
 photos included), then only new or changed recipes. Recipes appear during the sync. Options:
