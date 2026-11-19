@@ -48,6 +48,8 @@ screen.
 - **Cookomix recipes**: Toque reads the [cookomix.com](https://www.cookomix.com) recipes (written
   for the Thermomix) from the site's public pages and keeps the ones the MCC can make, with every
   setting converted for the MCC and checked by the same safety rules (details below).
+- **Manual cooking with buttons or dials**: − / + buttons or touch dials ("Buttons / Dials",
+  remembered), with the same safety limits; while cooking, one step per gesture.
 - **Recipes by source**: All / Lidl / Cookomix tabs (remembered) and a "Categories…" page listing
   every category with its recipe count.
 - **Author, ratings and reviews**: each recipe shows who published it and its rating on the site,

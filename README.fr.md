@@ -46,6 +46,9 @@ l'écran du robot.
 - **Recettes Cookomix** : Toque lit les recettes de [cookomix.com](https://www.cookomix.com) (écrites
   pour le Thermomix) sur les pages publiques du site et garde celles que le MCC peut faire, chaque
   réglage converti pour le MCC et contrôlé par les mêmes sécurités (détails plus bas).
+- **Cuisson manuelle aux boutons ou aux molettes** : boutons − / + ou molettes tactiles (choix
+  « Boutons / Molettes », mémorisé), avec les mêmes limites de sécurité ; pendant la cuisson, un
+  cran par geste.
 - **Recettes par source** : onglets Tout / Lidl / Cookomix (mémorisés) et page « Catégories… »
   avec toutes les catégories et leur nombre de recettes.
 - **Auteur, notes et avis** : chaque recette affiche qui l'a publiée et sa note sur le site, et la
