@@ -16,6 +16,10 @@ MOCK
 
 cat > "$TEST_DIR/bin/magisk" <<'MOCK'
 #!/usr/bin/env bash
+if [ "$1" = -V ]; then
+  printf '%s\n' "$MOCK_MAGISK_VERSION"
+  exit 0
+fi
 printf '%s\n' "$2" >> "$CASE_DIR/sql.log"
 case "$2" in
   REPLACE*) exit "$MOCK_SQL_WRITE_STATUS" ;;
@@ -96,12 +100,14 @@ new_case() {
   CASE_DIR="$TEST_DIR/$1"
   mkdir -p "$CASE_DIR"
   MOCK_UID=10047
+  # Keep the legacy boot workaround inactive in these installer regressions.
+  MOCK_MAGISK_VERSION=31001
   MOCK_SQL_WRITE_STATUS=0
   MOCK_SQL_READ_STATUS=0
   MOCK_POLICY_ROW='uid=10047|policy=2|until=0'
   MOCK_ADB_FAIL_AT=none
   MOCK_REMOTE_REPLY=success
-  export CASE_DIR MOCK_UID MOCK_SQL_WRITE_STATUS MOCK_SQL_READ_STATUS MOCK_POLICY_ROW MOCK_ADB_FAIL_AT MOCK_REMOTE_REPLY
+  export CASE_DIR MOCK_UID MOCK_MAGISK_VERSION MOCK_SQL_WRITE_STATUS MOCK_SQL_READ_STATUS MOCK_POLICY_ROW MOCK_ADB_FAIL_AT MOCK_REMOTE_REPLY
 }
 run() {
   if "$@" > "$CASE_DIR/output" 2>&1; then RESULT=0; else RESULT=$?; fi
