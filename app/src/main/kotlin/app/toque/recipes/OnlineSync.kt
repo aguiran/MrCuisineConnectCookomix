@@ -1,8 +1,6 @@
 package app.toque.recipes
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import app.toque.Logbook
 import app.toque.Prefs
 import app.toque.core.i18n.I18n
@@ -12,12 +10,8 @@ import app.toque.core.json.obj
 import app.toque.core.json.str
 import app.toque.core.recipes.McOnline
 import app.toque.core.recipes.Recipe
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
@@ -35,15 +29,19 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
         "?"
     }
     private val indexFile = File(context.filesDir, "recettes-en-ligne.json")
+    private val fetcher = Fetcher(version, repo)
 
     fun sync(progress: (String) -> Unit = {}): LidlSync.Report {
         if (!running.compareAndSet(false, true)) return LidlSync.Report(false, tr("Synchronisation déjà en cours"))
+        prefs.lidlSyncPending = true
         try {
-            return finish(run(progress))
+            // Progression partagée : un écran Réglages rouvert pendant la synchro la retrouve.
+            return finish(run { msg -> current = msg; progress(msg) })
         } catch (e: Exception) {
             log.crash("synchro", e)
             return finish(LidlSync.Report(false, tr("Synchronisation impossible : %s", e.message ?: e.toString())))
         } finally {
+            current = ""
             running.set(false)
         }
     }
@@ -114,7 +112,7 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
 
         // 3. Le catalogue suit la liste du site (recettes retirées supprimées).
         val keep = entries.map { McOnline.toqueId(it.apiId) }.toHashSet()
-        repo.removeAllExcept(keep, rebuild = false)
+        repo.removeAllExcept(keep, rebuild = false, scope = RecipeRepo.Scope.LIDL)
         val kept = entries.map { it.apiId.toString() }.toHashSet()
         index.keys.retainAll(kept)
         writeIndex(language, index)
@@ -154,64 +152,13 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
         }
     }
 
-    /** Photo réduite (800 px de large au plus), enregistrée sous le nom de fichier de l'URL. */
-    private fun savePhoto(url: String) {
-        val bytes = download(url, emptyMap(), 8 * 1024 * 1024)
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        if (bounds.outWidth <= 0) throw IOException(tr("image illisible"))
-        var sample = 1
-        while (bounds.outWidth / (sample * 2) >= MAX_WIDTH) sample *= 2
-        var bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
-            ?: throw IOException(tr("image illisible"))
-        if (bmp.width > MAX_WIDTH) {
-            val scaled = Bitmap.createScaledBitmap(bmp, MAX_WIDTH, bmp.height * MAX_WIDTH / bmp.width, true)
-            if (scaled !== bmp) bmp.recycle()
-            bmp = scaled
-        }
-        val name = url.substringAfterLast('/').substringBefore('?')
-        val tmp = File(repo.imagesDir, "$name.part")
-        FileOutputStream(tmp).use { bmp.compress(Bitmap.CompressFormat.JPEG, 85, it) }
-        bmp.recycle()
-        if (!tmp.renameTo(File(repo.imagesDir, name))) tmp.delete()
-    }
+    private fun savePhoto(url: String) = fetcher.savePhoto(url)
 
     private fun get(url: String, language: String): String =
         String(download(url, McOnline.headers(language), 4 * 1024 * 1024), Charsets.UTF_8)
 
-    /** GET avec reprises espacées si le serveur demande de ralentir (429) ou est indisponible (5xx). */
-    private fun download(url: String, headers: Map<String, String>, maxBytes: Int): ByteArray {
-        var attempt = 0
-        while (true) {
-            attempt++
-            val c = app.toque.Tls.apply(URL(url).openConnection() as HttpURLConnection)
-            try {
-                c.connectTimeout = 20_000
-                c.readTimeout = 30_000
-                c.setRequestProperty("User-Agent", "Toque/$version (Android; +https://github.com/Wuki60/MrCuisineVibeConnect)")
-                for ((k, v) in headers) c.setRequestProperty(k, v)
-                val code = c.responseCode
-                if ((code == 429 || code >= 500) && attempt < 4) {
-                    pause(5_000L * attempt)
-                    continue
-                }
-                if (code != 200) throw IOException(tr("réponse %d du serveur", code))
-                c.inputStream.use { input ->
-                    val out = ByteArrayOutputStream()
-                    val buf = ByteArray(16 * 1024)
-                    while (true) {
-                        val n = input.read(buf)
-                        if (n < 0) break
-                        out.write(buf, 0, n)
-                        if (out.size() > maxBytes) throw IOException(tr("réponse trop grande"))
-                    }
-                    return out.toByteArray()
-                }
-            } finally {
-                c.disconnect()
-            }
-        }
-    }
+    private fun download(url: String, headers: Map<String, String>, maxBytes: Int): ByteArray =
+        fetcher.download(url, headers, maxBytes)
 
     private fun readIndex(): Pair<String, Map<String, String>> = try {
         val m = Json.parse(indexFile.readText()).obj()
@@ -232,6 +179,9 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
     }
 
     private fun finish(r: LidlSync.Report): LidlSync.Report {
+        // Terminée (réussie ou arrêtée sur une erreur) : pas de reprise automatique au démarrage.
+        prefs.lidlResumes = 0
+        prefs.lidlSyncPending = false
         val stamp = SimpleDateFormat(tr("dd/MM à HH:mm"), I18n.locale).format(Date())
         prefs.lastSyncMs = System.currentTimeMillis()
         prefs.lastSyncResult = "$stamp : ${r.message}"
@@ -247,7 +197,12 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
     }
 
     companion object {
-        private const val MAX_WIDTH = 800
         private val running = AtomicBoolean(false)
+
+        val isRunning: Boolean get() = running.get()
+
+        /** Dernier message de progression de la synchro en cours (vide sinon). */
+        @Volatile var current: String = ""
+            private set
     }
 }

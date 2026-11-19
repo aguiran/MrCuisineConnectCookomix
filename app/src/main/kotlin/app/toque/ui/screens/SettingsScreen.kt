@@ -20,6 +20,7 @@ import app.toque.core.machine.RootShell
 import app.toque.core.machine.Snapshot
 import app.toque.core.time.ZoneLookup
 import app.toque.core.update.Release
+import app.toque.recipes.CookomixSync
 import app.toque.recipes.LidlSync
 import app.toque.recipes.OnlineSync
 import app.toque.ui.Icon
@@ -35,6 +36,11 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     private lateinit var host: EditText
     private lateinit var port: EditText
     private lateinit var syncText: TextView
+    private lateinit var ckxText: TextView
+    private var ckxBusy = false
+    /** Une seule boucle de suivi par synchro, quel que soit le nombre d'appels (onShow, boutons…). */
+    private val ckxPoll = Runnable { if (ckxText.isAttachedToWindow) refreshCookomix() }
+    private val lidlPoll = Runnable { if (syncText.isAttachedToWindow) refreshSync() }
     private lateinit var bowlText: TextView
     private lateinit var linkText: TextView
     private lateinit var timeText: TextView
@@ -129,11 +135,28 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         lidl.addView(b1, Ui.lp(t = 12))
         lidl.addView(Ui.text(c, tr("Autre source : les recettes déjà présentes dans l'appli d'origine du robot (remplacent celles du site)."),
             14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 12))
-        val b2 = Ui.horizontal(c)
-        b2.addView(Ui.button(c, tr("Importer de l'appli d'origine"), Ui.Style.SECONDARY, height = 52) { sync(online = false) }, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
-        b2.addView(Ui.button(c, tr("Ouvrir l'appli d'origine"), Ui.Style.GHOST, Icon.Kind.LINK, height = 52) { a.openVendorApp() })
-        lidl.addView(b2, Ui.lp(t = 6))
+        // L'un sous l'autre : côte à côte, la colonne est trop étroite et le second bouton se replie sur 4 lignes.
+        lidl.addView(Ui.button(c, tr("Importer de l'appli d'origine"), Ui.Style.SECONDARY, height = 52, textSize = 18f) { sync(online = false) },
+            Ui.lp(Ui.WRAP, Ui.WRAP, t = 6))
+        lidl.addView(Ui.button(c, tr("Ouvrir l'appli d'origine"), Ui.Style.GHOST, Icon.Kind.LINK, height = 52, textSize = 18f) { a.openVendorApp() },
+            Ui.lp(Ui.WRAP, Ui.WRAP, t = 8))
         lidl.addView(toggle(tr("Synchro automatique chaque nuit"), a.prefs.autoSync) { a.prefs.autoSync = it }, Ui.lp(t = 10))
+
+        // ---- Recettes Cookomix
+        val ckx = section(right, tr("Recettes Cookomix"), Icon.Kind.SYNC)
+        ckx.addView(Ui.text(c, tr("Toque télécharge les recettes de cookomix.com (écrites pour le Thermomix) et garde celles que le Monsieur Cuisine connect peut faire. Les réglages sont convertis ; vérifiez-les avant de lancer chaque étape."),
+            16f, Ui.TEXT2).apply { setLineSpacing(0f, 1.15f) })
+        ckxText = Ui.text(c, "", 16f, Ui.TEXT)
+        ckx.addView(ckxText, Ui.lp(t = 10))
+        ckx.addView(Ui.button(c, tr("Synchroniser Cookomix"), Ui.Style.PRIMARY, Icon.Kind.SYNC, height = 58) { syncCookomix() },
+            Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))
+        ckx.addView(Ui.text(c, tr("La première fois, compter une heure ou plus (une page toutes les 1 à 2 secondes, photos comprises, pour ne pas surcharger le site). Les recettes apparaissent au fur et à mesure."),
+            14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        ckx.addView(toggle(tr("Inclure les recettes adaptées"), a.prefs.cookomixAdapted) { a.prefs.cookomixAdapted = it }, Ui.lp(t = 10))
+        ckx.addView(Ui.text(c, tr("Recettes dont un réglage a dû être modifié (vitesse en chauffe limitée à 3, pétrissage découpé en 2 min…). Elles portent le mot-clé « Adaptée MCC »."),
+            14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        ckx.addView(toggle(tr("Synchro Cookomix chaque nuit"), a.prefs.cookomixAutoSync) { a.prefs.cookomixAutoSync = it }, Ui.lp(t = 10))
+        refreshCookomix()
 
         // ---- Mises à jour
         val updates = section(left, tr("Mises à jour"), Icon.Kind.INFO)
@@ -153,7 +176,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         tools.addView(link(tr("Revenir à l'appli d'origine")) { restoreVendor() })
         val version = try { a.packageManager.getPackageInfo(a.packageName, 0).versionName } catch (_: Exception) { "?" }
         tools.addView(Ui.text(c, tr("Toque %s · protocole d'après le Monsieur Cuisine Developer SDK (licence MIT). " +
-            "Projet indépendant, non affilié à Lidl ni à SilverCrest.", version), 14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 12))
+            "Projet indépendant, non affilié à Lidl, SilverCrest ni Cookomix.", version), 14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 12))
 
         return Ui.scroll(c, col)
     }
@@ -330,6 +353,11 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     }
 
     private fun sync(online: Boolean) {
+        if (online && OnlineSync.isRunning) {
+            a.toast(tr("Synchronisation déjà en cours"), Ui.WARN)
+            refreshSync()
+            return
+        }
         if (syncing) return
         if (!online && a.prefs.mode != Prefs.Mode.HARDWARE) {
             a.toast(tr("Disponible une fois Toque installé sur le robot (mode Machine réelle)"), Ui.WARN)
@@ -373,7 +401,54 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         }.start()
     }
 
+    private fun refreshCookomix() {
+        ckxText.removeCallbacks(ckxPoll)
+        val resuming = a.prefs.cookomixSyncPending && app.toque.ToqueApp.resumesScheduled.get() > 0
+        if (CookomixSync.isRunning || resuming) {
+            // Synchro lancée avant d'ouvrir cet écran, de nuit, ou interrompue et sur le point de
+            // reprendre toute seule : on suit sa progression.
+            ckxText.text = CookomixSync.current.ifEmpty {
+                if (CookomixSync.isRunning) tr("Synchronisation Cookomix en cours…") else tr("Reprise automatique dans quelques secondes…")
+            }
+            ckxText.postDelayed(ckxPoll, 1_000)
+            return
+        }
+        val last = a.prefs.cookomixLastResult
+        ckxText.text = if (last.isEmpty()) tr("Jamais synchronisé") else tr("Dernière synchro le %s", last)
+    }
+
+    private fun syncCookomix() {
+        if (CookomixSync.isRunning) {
+            a.toast(tr("Synchronisation Cookomix déjà en cours"), Ui.WARN)
+            refreshCookomix()
+            return
+        }
+        if (ckxBusy) return
+        ckxBusy = true
+        ckxText.text = tr("Synchronisation Cookomix en cours…")
+        Thread {
+            val r = CookomixSync(a, a.prefs, a.app.recipes, a.app.log).sync { msg -> view.post { ckxText.text = msg } }
+            view.post {
+                ckxBusy = false
+                refreshCookomix()
+                refreshSync()
+                a.toast(r.message, if (r.ok) Ui.OK else Ui.WARN)
+            }
+        }.start()
+    }
+
     private fun refreshSync() {
+        syncText.removeCallbacks(lidlPoll)
+        val resuming = a.prefs.lidlSyncPending && app.toque.ToqueApp.resumesScheduled.get() > 0
+        if (OnlineSync.isRunning || resuming) {
+            // Synchro lancée avant d'ouvrir cet écran, de nuit, ou interrompue et sur le point de
+            // reprendre toute seule : on suit sa progression.
+            syncText.text = OnlineSync.current.ifEmpty {
+                if (OnlineSync.isRunning) tr("Synchronisation en cours… (quelques minutes)") else tr("Reprise automatique dans quelques secondes…")
+            }
+            syncText.postDelayed(lidlPoll, 1_000)
+            return
+        }
         val last = a.prefs.lastSyncResult
         syncText.text = (if (last.isEmpty()) tr("Jamais synchronisé") else tr("Dernière synchro le %s", last)) +
             "\n" + tr("%d recettes dans Toque", a.app.recipes.count)
@@ -483,6 +558,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         mode = a.prefs.mode
         renderModes()
         if (!syncing) refreshSync()
+        if (::ckxText.isInitialized && !ckxBusy) refreshCookomix()
     }
 
     override fun onSnapshot(s: Snapshot) {

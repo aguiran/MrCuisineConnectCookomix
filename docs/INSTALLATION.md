@@ -288,6 +288,15 @@ replace the ones from the site). If it has none yet, **"Open the stock app"** le
 Lidl's servers; come back with the **"Back to Toque"** button. If that import fails, the file
 `Android/data/app.toque/files/diagnostic-recettes.txt` describes the stock database.
 
+### Cookomix recipes
+
+**Settings › Cookomix recipes › Sync Cookomix** (robot on Wi-Fi). Toque reads the cookomix.com
+recipes, written for the Thermomix, and keeps the ones the MCC can make, with their settings
+converted: an hour or more the first time, then only new or changed ones. They are tagged
+"Cookomix" (and "Adaptée MCC" when a setting had to be adapted). In **Recipes**, the
+**All / Lidl / Cookomix** tabs keep the two sources apart and **"Categories…"** lists every
+category. Error codes CKX-01 to CKX-07: [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md) (in French).
+
 ### Every day
 
 - Toque opens by itself when the robot starts.

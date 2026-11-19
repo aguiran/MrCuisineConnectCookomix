@@ -291,6 +291,16 @@ d'origine (elles remplacent celles du site). Si elle n'en a pas encore, **« Ouv
 d'origine »** la laisse se synchroniser avec les serveurs Lidl ; revenez avec le bouton **« Retour à Toque »**. Si cet import échoue, le fichier
 `Android/data/app.toque/files/diagnostic-recettes.txt` décrit la base d'origine.
 
+### Les recettes Cookomix
+
+**Réglages › Recettes Cookomix › Synchroniser Cookomix** (robot en Wi-Fi). Toque lit les recettes
+de cookomix.com, écrites pour le Thermomix, et garde celles que le MCC peut faire, avec leurs
+réglages convertis : une heure ou plus la première fois, ensuite seulement les nouvelles ou
+modifiées. Elles portent le mot-clé « Cookomix » (et « Adaptée MCC » quand un réglage a dû être
+adapté). Dans **Recettes**, les onglets **Tout / Lidl / Cookomix** séparent les deux sources et
+**« Catégories… »** liste toutes les catégories. Codes d'erreur CKX-01 à CKX-07 :
+[COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md).
+
 ### Au quotidien
 
 - Toque s'ouvre tout seul au démarrage du robot.
