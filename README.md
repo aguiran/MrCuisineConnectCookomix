@@ -50,6 +50,8 @@ screen.
   setting converted for the MCC and checked by the same safety rules (details below).
 - **Manual cooking with buttons or dials**: − / + buttons or touch dials ("Buttons / Dials",
   remembered), with the same safety limits; while cooking, one step per gesture.
+- **Screen sleep**: after 5, 10 (default) or 30 min without touch, black screen with the time; a
+  touch or the knob wakes it. Never during a program, an alert or a recipe sync.
 - **Recipes by source**: All / Lidl / Cookomix tabs (remembered) and a "Categories…" page listing
   every category with its recipe count.
 - **Author, ratings and reviews**: each recipe shows who published it and its rating on the site,

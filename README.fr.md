@@ -49,6 +49,9 @@ l'écran du robot.
 - **Cuisson manuelle aux boutons ou aux molettes** : boutons − / + ou molettes tactiles (choix
   « Boutons / Molettes », mémorisé), avec les mêmes limites de sécurité ; pendant la cuisson, un
   cran par geste.
+- **Mise en veille de l'écran** : après 5, 10 (par défaut) ou 30 min sans contact, écran noir avec
+  l'heure ; un toucher ou le bouton rotatif le réveille. Jamais pendant un programme, une alerte ou
+  une synchro de recettes.
 - **Recettes par source** : onglets Tout / Lidl / Cookomix (mémorisés) et page « Catégories… »
   avec toutes les catégories et leur nombre de recettes.
 - **Auteur, notes et avis** : chaque recette affiche qui l'a publiée et sa note sur le site, et la

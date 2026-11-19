@@ -51,6 +51,7 @@ class MainActivity : Activity() {
     private var tone: ToneGenerator? = null
     private var toastView: TextView? = null
     private var lastKnobMs = 0L
+    private lateinit var standby: Standby
     var knobListener: ((KeyEvent) -> Unit)? = null
 
     val prefs: Prefs get() = app.prefs
@@ -78,6 +79,7 @@ class MainActivity : Activity() {
         overlay = FrameLayout(this)
         overlay.visibility = View.GONE
         root.addView(overlay, Ui.flp())
+        standby = Standby(this, root, { prefs.screenSleepMinutes }, { snapshot })
         setContentView(root)
 
         try {
@@ -108,9 +110,11 @@ class MainActivity : Activity() {
             topBar.update(s)
             machineBar.update(s)
             stack.lastOrNull()?.onSnapshot(s)
+            standby.onSnapshot(s)
         }
         unsubscribeEvents = app.machine.onEvent { e -> onMachineEvent(e) }
         topBar.startClock()
+        standby.start()
     }
 
     override fun onResume() {
@@ -125,6 +129,7 @@ class MainActivity : Activity() {
         unsubscribe?.invoke()
         unsubscribeEvents?.invoke()
         topBar.stopClock()
+        standby.stop()
         super.onStop()
     }
 
@@ -205,7 +210,26 @@ class MainActivity : Activity() {
 
     // ------------------------------------------------------------------ bouton rotatif
 
+    // ------------------------------------------------------------------ mise en veille
+
+    /** Toucher l'écran en veille ne fait que le réveiller (le geste entier est absorbé). */
+    private var swallowGesture = false
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            swallowGesture = standby.sleeping
+            standby.wake()
+        }
+        if (swallowGesture) return true
+        return super.dispatchTouchEvent(ev)
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (standby.sleeping) {
+            if (event.action == KeyEvent.ACTION_DOWN) standby.wake()
+            return true
+        }
+        standby.touched()
         knobListener?.let { l ->
             if (event.action == KeyEvent.ACTION_DOWN) l(event)
             return true
@@ -228,6 +252,11 @@ class MainActivity : Activity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_SCROLL && standby.sleeping) {
+            standby.wake()
+            return true
+        }
+        standby.touched()
         if (event.action == MotionEvent.ACTION_SCROLL) {
             // Encodeur rotatif (AXIS_SCROLL) ou molette (AXIS_VSCROLL)
             val v = event.getAxisValue(AXIS_SCROLL).let { if (it == 0f) -event.getAxisValue(MotionEvent.AXIS_VSCROLL) else it }
@@ -243,6 +272,7 @@ class MainActivity : Activity() {
     // ------------------------------------------------------------------ évènements machine
 
     private fun onMachineEvent(e: MachineEvent) {
+        standby.wake() // fin de programme, couvercle, erreur… : l'écran se rallume pour le montrer
         current?.onEvent(e)
         when (e.type) {
             EventType.JOB_FINISHED -> chime(2)
