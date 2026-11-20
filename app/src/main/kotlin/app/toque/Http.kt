@@ -6,7 +6,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** GET minimal (heure, avis) : corps, et heure du serveur (en-tête Date, 0 si absente). */
+/** GET minimal (heure, avis, photos) : corps, et heure du serveur (en-tête Date, 0 si absente). */
 object Http {
     class Response(val body: String, val serverMs: Long)
 
@@ -29,6 +29,14 @@ object Http {
     }
 
     fun get(url: String, headers: Map<String, String> = emptyMap(), timeoutMs: Int = 15_000, maxBytes: Int = 1024 * 1024): Response {
+        var serverMs = 0L
+        val body = bytes(url, headers, timeoutMs, maxBytes) { serverMs = it }
+        return Response(String(body, Charsets.UTF_8), serverMs)
+    }
+
+    /** Corps de la réponse tel quel (image…) ; [onDate] reçoit l'heure du serveur. */
+    fun bytes(url: String, headers: Map<String, String> = emptyMap(), timeoutMs: Int = 15_000, maxBytes: Int = 1024 * 1024,
+              onDate: (Long) -> Unit = {}): ByteArray {
         val c = Tls.apply(URL(url).openConnection() as HttpURLConnection)
         try {
             c.connectTimeout = timeoutMs
@@ -36,7 +44,7 @@ object Http {
             c.setRequestProperty("User-Agent", userAgent)
             for ((k, v) in headers) c.setRequestProperty(k, v)
             val code = c.responseCode
-            val date = c.date
+            onDate(c.date)
             if (code != 200) throw IOException(tr("réponse %d du serveur", code))
             c.inputStream.use { input ->
                 val out = ByteArrayOutputStream()
@@ -47,7 +55,7 @@ object Http {
                     out.write(buf, 0, n)
                     if (out.size() > maxBytes) throw IOException(tr("réponse trop grande"))
                 }
-                return Response(String(out.toByteArray(), Charsets.UTF_8), date)
+                return out.toByteArray()
             }
         } finally {
             c.disconnect()

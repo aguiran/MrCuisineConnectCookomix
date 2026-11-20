@@ -11,6 +11,8 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import app.toque.Logbook
+import app.toque.Prefs
 import app.toque.core.machine.Snapshot
 import app.toque.recipes.CookomixSync
 import app.toque.recipes.OnlineSync
@@ -22,14 +24,26 @@ import app.toque.recipes.OnlineSync
  * réveiller. Jamais pendant un programme, un Turbo, une alerte de la base, ni pendant une
  * synchro de recettes (la synchro continuerait, mais sa progression doit rester visible).
  * L'inactivité se mesure sans l'horloge du robot, qui saute quand elle est remise à l'heure.
+ *
+ * En option, la veille fait défiler les photos d'un album ([PhotoFrame]) à la place de l'heure, à
+ * une luminosité choisie. Un premier geste remet alors l'écran en pleine lumière pour regarder la
+ * photo, un second réveille. Sans réseau ou si l'album est illisible, la veille affiche l'heure.
  */
-class Standby(private val activity: Activity, root: FrameLayout, private val minutes: () -> Int, private val snapshot: () -> Snapshot) {
+class Standby(private val activity: Activity, root: FrameLayout, private val prefs: Prefs, log: Logbook, private val snapshot: () -> Snapshot) {
     private val main = Handler(Looper.getMainLooper())
     private var lastActivity = SystemClock.elapsedRealtime()
     private var running = false
 
     var sleeping = false
         private set
+
+    private val photos = PhotoFrame(activity, prefs, log)
+    /** Le diaporama est à l'écran (sinon : l'heure). */
+    private var showingPhotos = false
+    /** Diaporama en pleine lumière après un premier geste ; le suivant réveille. */
+    private var bright = false
+    private val dim = Runnable { setBright(false) }
+    private val retryPhotos = Runnable { if (sleeping && !showingPhotos) showPhotos() }
 
     private val clock = TextView(activity).apply {
         setTextColor(0xFF4A4F57.toInt())
@@ -57,17 +71,23 @@ class Standby(private val activity: Activity, root: FrameLayout, private val min
             addView(date)
         }
         addView(column, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+        photos.view.visibility = View.GONE
+        addView(photos.view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
     }
 
     init {
         root.addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        photos.onUnavailable = {
+            showClock()
+            main.postDelayed(retryPhotos, PHOTOS_RETRY_MS)
+        }
     }
 
     private val tick = object : Runnable {
         override fun run() {
             if (!running) return
             if (sleeping) showTime()
-            else if (shouldSleep()) sleep()
+            else if (shouldSleep()) sleep(prefs.standbyPhotos && prefs.photoAlbum.isNotEmpty())
             main.postDelayed(this, TICK_MS)
         }
     }
@@ -76,7 +96,7 @@ class Standby(private val activity: Activity, root: FrameLayout, private val min
         !OnlineSync.isRunning && !CookomixSync.isRunning
 
     private fun shouldSleep(): Boolean {
-        val m = minutes()
+        val m = prefs.screenSleepMinutes
         return m > 0 && SystemClock.elapsedRealtime() - lastActivity >= m * 60_000L && canSleep(snapshot())
     }
 
@@ -102,18 +122,64 @@ class Standby(private val activity: Activity, root: FrameLayout, private val min
         if (sleeping && !canSleep(s)) wake()
     }
 
-    private fun sleep() {
+    private fun sleep(withPhotos: Boolean) {
         sleeping = true
-        showTime()
         view.visibility = View.VISIBLE
         view.bringToFront()
-        setBrightness(0.02f)
+        if (withPhotos) showPhotos() else showClock()
+    }
+
+    /** Lance le diaporama tout de suite (bouton des Réglages) ; faux si la veille n'est pas permise. */
+    fun startPhotos(): Boolean {
+        if (sleeping || !canSleep(snapshot())) return false
+        sleep(withPhotos = true)
+        return true
+    }
+
+    private fun showPhotos() {
+        showingPhotos = true
+        photos.view.visibility = View.VISIBLE
+        setBright(false)
+        photos.start()
+    }
+
+    private fun showClock() {
+        main.removeCallbacks(dim)
+        photos.stop()
+        photos.view.visibility = View.GONE
+        showingPhotos = false
+        bright = false
+        showTime()
+        setBrightness(CLOCK_BRIGHTNESS)
+    }
+
+    /** Diaporama en pleine lumière le temps de regarder la photo, puis retour à sa luminosité. */
+    private fun setBright(on: Boolean) {
+        main.removeCallbacks(dim)
+        bright = on
+        photos.showHint(on)
+        setBrightness(if (on) 1f else prefs.photoBrightness.coerceIn(1, 100) / 100f)
+        if (on) main.postDelayed(dim, BRIGHT_MS)
+    }
+
+    /**
+     * Un geste (toucher, bouton rotatif) pendant la veille : il réveille, sauf le premier pendant
+     * le diaporama, qui ne fait que monter la lumière.
+     */
+    fun interact() {
+        if (sleeping && showingPhotos && !bright) setBright(true) else wake()
     }
 
     fun wake() {
         lastActivity = SystemClock.elapsedRealtime()
         if (!sleeping) return
         sleeping = false
+        main.removeCallbacks(dim)
+        main.removeCallbacks(retryPhotos)
+        photos.stop()
+        photos.view.visibility = View.GONE
+        showingPhotos = false
+        bright = false
         view.visibility = View.GONE
         setBrightness(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE)
     }
@@ -121,6 +187,7 @@ class Standby(private val activity: Activity, root: FrameLayout, private val min
     private fun showTime() {
         clock.text = MainActivity.now()
         date.text = MainActivity.today()
+        if (showingPhotos) photos.refreshClock()
     }
 
     private fun setBrightness(value: Float) {
@@ -131,5 +198,10 @@ class Standby(private val activity: Activity, root: FrameLayout, private val min
 
     private companion object {
         const val TICK_MS = 15_000L
+        const val CLOCK_BRIGHTNESS = 0.02f
+        /** Durée de la pleine lumière après un premier geste sur le diaporama. */
+        const val BRIGHT_MS = 10_000L
+        /** Album illisible ou réseau absent : nouvel essai du diaporama. */
+        const val PHOTOS_RETRY_MS = 2 * 60_000L
     }
 }
