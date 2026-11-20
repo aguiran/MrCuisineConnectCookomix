@@ -53,7 +53,9 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
         canvas.save()
         canvas.translate(paddingLeft + (w - 24 * s) / 2f, paddingTop + (h - 24 * s) / 2f)
         canvas.scale(s, s)
-        stroke.strokeWidth = 2f
+        // Trait de 2 sur la grille pour une petite icône ; une grande garde un trait fin au lieu
+        // d'un trait épaissi en proportion.
+        stroke.strokeWidth = minOf(2f, Ui.uf(MAX_STROKE) / s)
         val p = path
         p.reset()
         when (kind) {
@@ -98,7 +100,11 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
                     if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
                 }
                 p.close()
-                canvas.drawPath(p, if (kind == Kind.STAR_FILLED) fill else stroke)
+                // Pointes adoucies.
+                val paint = if (kind == Kind.STAR_FILLED) fill else stroke
+                paint.pathEffect = STAR_CORNERS
+                canvas.drawPath(p, paint)
+                paint.pathEffect = null
             }
             Kind.SETTINGS -> {
                 canvas.drawCircle(12f, 12f, 3.2f, stroke)
@@ -164,5 +170,11 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
             }
         }
         canvas.restore()
+    }
+
+    private companion object {
+        /** Épaisseur maximale du trait, en unités d'écran. */
+        const val MAX_STROKE = 2.5f
+        val STAR_CORNERS = android.graphics.CornerPathEffect(1.2f)
     }
 }
