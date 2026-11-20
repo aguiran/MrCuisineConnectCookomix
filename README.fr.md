@@ -6,10 +6,12 @@
 > Cuisine Connect, en plus des recettes Lidl. Toque se met à jour depuis les versions de **ce**
 > dépôt (même signature que l'original : la mise à jour se fait par-dessus sans désinstaller).
 >
-> **État des essais.** La version Cookomix a tourné sur un téléphone Android (Pixel) en mode Démo :
-> synchro complète, cuisson guidée contre la base simulée. Ses réglages passent les tests contre le
-> jumeau numérique du SDK. **Elle n'a encore jamais tourné sur un vrai robot** : gardez la
-> confirmation des réglages activée et vérifiez chaque réglage Cookomix les premières fois.
+> **État des essais.** La version Cookomix a tourné sur un téléphone Android (Pixel) en mode Démo
+> (synchro complète, cuisson guidée contre la base simulée), ses réglages passent les tests contre
+> le jumeau numérique du SDK, et depuis le 18 novembre 2026 elle tourne sur **un vrai robot**
+> (SKMC 1200 : installation depuis un Mac, synchro Cookomix complète, premier essai en machine
+> réelle bol vide). Un robot, c'est peu : gardez la confirmation des réglages activée et vérifiez
+> chaque réglage Cookomix les premières fois.
 >
 > **Comment ça marche.** Cookomix n'a pas d'API ouverte (son API mobile exige une clé privée).
 > Toque lit donc les pages publiques du site, depuis le robot lui-même : la liste des recettes
@@ -73,9 +75,9 @@ qui remplace l'appli d'origine sur la tablette du robot tout en gardant **les re
 > Projet indépendant, non affilié à Lidl, SilverCrest ni Hoyer. Le pilotage du moteur repose
 > sur une analyse publique du protocole ; il tourne au quotidien sur un robot (SKMC 1200, Android 6)
 > depuis octobre 2026 et sur un second depuis novembre 2026, mais n'a pas été essayé sur d'autres
-> (le Toque d'origine ; **la version Cookomix de ce fork n'a tourné que sur un téléphone en mode
-> Démo, jamais sur un vrai robot** : gardez la confirmation des réglages et vérifiez chaque réglage
-> Cookomix les premières fois). À utiliser à vos risques, en suivant la procédure de premier essai.
+> (le Toque d'origine ; **la version Cookomix de ce fork tourne sur un robot depuis le
+> 18 novembre 2026** : gardez la confirmation des réglages et vérifiez chaque réglage Cookomix les
+> premières fois). À utiliser à vos risques, en suivant la procédure de premier essai.
 
 ## Installer
 
@@ -129,8 +131,10 @@ l'écran du robot.
   passe directement d'une vitesse et d'une température à l'autre, sans s'arrêter.
 - **Cuisson manuelle**, programmes **Pétrir / Vapeur / Rissoler**, **Turbo**, **balance**.
 - **Hors ligne** : tout fonctionne sans réseau (plus de « serveur injoignable » au démarrage).
-- **Heure toujours juste** : le fuseau horaire est trouvé d'après la connexion Internet et l'heure
-  vient du réseau (le robot n'a pas de pile d'horloge) ; réglable à la main dans Réglages › Date et heure.
+- **Heure toujours juste** : l'heure et le fuseau horaire viennent de la connexion Internet (le
+  robot n'a pas de pile d'horloge) ; le fuseau peut se choisir à la main dans Réglages › Date et
+  heure. Après un démarrage, tant que le réseau n'a pas répondu, l'horloge affiche `--:--` plutôt
+  qu'une heure fausse.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton
   **« Retour à Toque »** reste affiché par-dessus l'appli d'origine quand on l'ouvre.
 - **Mises à jour depuis GitHub** : Réglages › Mises à jour vérifie les
@@ -212,8 +216,8 @@ numéro de version comme erreur. Le JDK d'Android Studio convient :
 
 **État des essais** : la version Cookomix a tourné sur un téléphone Pixel en mode Démo (synchro
 complète, cuisson guidée contre la base simulée), ses réglages passent les tests avec le jumeau, et
-le convertisseur a été passé sur les 2 437 recettes du site. Elle n'a jamais été essayée sur un
-vrai robot.
+le convertisseur a été passé sur les 2 437 recettes du site. Depuis le 18 novembre 2026, elle
+tourne aussi sur un vrai robot (SKMC 1200).
 
 ## Ajouter une langue
 

@@ -20,7 +20,7 @@ Android 6 tablet (MediaTek MT6580). Toque replaces its stock app. To get there y
 1. back up two partitions of the tablet (boot, recovery) — the only way back;
 2. boot TWRP (a recovery system) and patch the original boot with **Magisk** (root);
 3. write the patched boot, keep TWRP as recovery;
-4. install the Toque APK, enable ADB over Wi-Fi.
+4. install the Toque APK and, if the person wants it, enable ADB over Wi-Fi.
 
 The first two writes need the robot's MediaTek **download mode** (robot switched off, reached over
 USB): on a Mac this is done by **mtkclient**. Everything else goes through **adb**, and the patched
@@ -38,8 +38,9 @@ gave identical images, and `flash-twrp` wrote and verified TWRP. That is one rob
 if download mode does not work from the Mac, see
 [When mtkclient does not reach the robot](#when-mtkclient-does-not-reach-the-robot). Tell the
 person this before starting. These install runs were done by the upstream projects (Wuki60 for
-Windows, flexbox for macOS); this fork only changes where the scripts download Toque from, and its
-Toque (with Cookomix) has only run on a phone in Demo mode, never on a robot.
+Windows, flexbox for macOS); this fork only changes where the scripts download Toque from. Its
+Toque (with Cookomix) was installed with these scripts from a Mac on a third robot (SKMC 1200) on
+18 November 2026 and runs on it since.
 
 ## Rules for the agent
 
@@ -54,8 +55,9 @@ Toque (with Cookomix) has only run on a phone in Demo mode, never on a robot.
   packages: ask first, saying which ones.
 - Download only from the URLs below, and let the script check the SHA-256 of every file (and the
   mtkclient commit). If a check does not match, stop.
-- Ask before each step that writes to the robot (`flash-twrp`, `root`, `flash-root`, `unroot`) — say
-  what it does in one sentence and wait for *yes*.
+- Ask before each step that writes to the robot (`flash-twrp`, `root`, `flash-root`, `unroot`) and
+  before `wifi`, which opens the robot to the home network — say what it does in one sentence and
+  wait for *yes*.
 - When a step prints `STOP:`, do not improvise a workaround on the robot: read the cause, fix it
   on the Mac side or ask the person, then run the step again.
 - If the robot is not an SKMC 1200 Monsieur Cuisine **Connect** (for example a Monsieur Cuisine
@@ -123,14 +125,14 @@ step, have the person switch it off. `ls /dev/cu.usbmodem*` lists nothing once i
 | 6 | `android` | agent + person | Checks Magisk, installs its app; the person taps **Grant** on the robot once. Checks the boot partition. |
 | 7 | `install` | agent | Installs Toque, allows it in Magisk (and keeps it allowed across restarts), starts it. Stops if any of this cannot be verified. |
 | 8 | first run | person | Empty bowl: Settings › Machine › Real machine › Apply, badge **Ready**, manual cooking 10 s speed 2. |
-| 9 | `wifi` | agent | ADB over Wi-Fi (port 5555), so the cable can go and the cover go back on. |
+| 9 | `wifi` (optional) | agent | ADB over Wi-Fi (port 5555). **Ask first**: any device on the home network can then take control of the robot (root included). Without it, unplug the cable and put the cover back on after step 8. |
 
 Then: Toque › Settings › Lidl recipes › **Sync** (about 15 minutes the first time), and
 Settings › Cookomix recipes › **Sync Cookomix** (an hour or more the first time).
 
-This fork's Toque (with the Cookomix recipes) has only run on a phone in Demo mode, **never on a
-robot**: tell the person, ask them to keep *Settings › Safety › Ask to confirm recipe settings* on
-(on by default) and to check each imported setting before starting it the first times.
+This fork's Toque (with the Cookomix recipes) runs on **one robot so far**: tell the person, ask
+them to keep *Settings › Safety › Ask to confirm recipe settings* on (on by default) and to check
+each imported setting before starting it the first times.
 
 ### Power-on rules (the source of most confusion)
 
@@ -222,7 +224,9 @@ and without macFUSE the FUSE package stops mtkclient from starting
   Error codes CKX-01 to CKX-10: [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md).
 - Recipes: Settings › Lidl recipes › Sync (monsieur-cuisine.com, no account). Nightly re-sync.
 - Clock: set automatically (time zone from the Internet connection); Settings › Date and time.
-- To work on the robot later over Wi-Fi: `adb connect <robot IP>:5555`.
+- To work on the robot later over Wi-Fi (if `wifi` was run): `adb connect <robot IP>:5555`. To
+  turn ADB over Wi-Fi off: `adb shell su -c "setprop persist.adb.tcp.port ''"`, then restart.
+- Clock showing `--:--`: the robot has not reached the Internet since it started (check the Wi-Fi).
 
 ## Working on the code
 
