@@ -96,6 +96,18 @@ one step at a time. It backs up the robot first, roots it with Magisk, installs 
 ADB over Wi-Fi. You only handle the cover, the cable, the power switch and a tap on the robot's
 screen.
 
+## Screenshots
+
+Taken on the robot (SKMC 1200, 1024 × 600 screen), interface in French; it also exists in English.
+
+| Home | Manual cooking (dials) |
+|---|---|
+| ![Home screen](docs/images/accueil.png) | ![Manual cooking](docs/images/manuel.png) |
+| **Categories** | **Settings** |
+| ![Categories](docs/images/categories.png) | ![Settings](docs/images/reglages.png) |
+| **Help on features** | |
+| ![Help page](docs/images/aide.png) | |
+
 ## Features
 
 - **Dark interface** designed for the robot's 7" screen and rotary knob, and smooth on its
@@ -106,7 +118,10 @@ screen.
   every category with its recipe count; the home screen shows "N Lidl · M Cookomix" and a cross to
   forget the recipe in progress.
 - **Manual cooking with buttons or dials**: − / + buttons or touch dials ("Buttons / Dials" choice,
-  remembered), with the same safety limits; while cooking, one step per gesture.
+  remembered), with the same safety limits; while cooking, one step per gesture. Turbo sits at the
+  top of the right-hand panel, away from Start.
+- **Short Settings page**: controls and states only; the explanations are on a *Help on features*
+  page, opened from the top of Settings.
 - **Unattended syncs**: their progress is found again when coming back to Settings; an interrupted
   sync (power cut, update, crash) resumes by itself at start-up, at most 3 times in a row for each
   sync; after that, Settings asks you to start it again by hand.
