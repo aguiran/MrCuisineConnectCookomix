@@ -36,6 +36,18 @@ one step at a time. It backs up the robot first, roots it with Magisk, installs 
 ADB over Wi-Fi. You only handle the cover, the cable, the power switch and a tap on the robot's
 screen.
 
+## Screenshots
+
+Taken on a robot (SKMC 1200, 1024 × 600 screen), interface in French; it also exists in English.
+
+| Home | Manual cooking (dials) |
+|---|---|
+| ![Home screen](docs/images/accueil.png) | ![Manual cooking](docs/images/manuel.png) |
+| **Categories** | **Settings** |
+| ![Categories](docs/images/categories.png) | ![Settings](docs/images/reglages.png) |
+| **Help on features** | |
+| ![Help page](docs/images/aide.png) | |
+
 ## Features
 
 - **Dark interface** designed for the robot's 7" screen and rotary knob, and smooth on its
@@ -49,9 +61,21 @@ screen.
   for the Thermomix) from the site's public pages and keeps the ones the MCC can make, with every
   setting converted for the MCC and checked by the same safety rules (details below).
 - **Manual cooking with buttons or dials**: − / + buttons or touch dials ("Buttons / Dials",
-  remembered), with the same safety limits; while cooking, one step per gesture.
-- **Screen sleep**: after 5, 10 (default) or 30 min without touch, black screen with the time; a
-  touch or the knob wakes it. Never during a program, an alert or a recipe sync.
+  remembered), with the same safety limits; while cooking, one step per gesture. Turbo sits at the
+  top of the right-hand panel, away from Start.
+- **Screen sleep**: after 5, 10 (default) or 30 min without touch, a black screen with the time and
+  date at minimum brightness, or a **photo frame**: the photos of a Google Photos album shared by
+  link, in shuffled order, with a fade between them (*Settings › Screen sleep*: the album's link, 10
+  to 60 seconds per photo, its own brightness); the rotary knob goes to the next or previous photo.
+  Photos are read online at screen size and never saved on the robot; videos are skipped. Anyone
+  who has the link can see the album, and Google does not document the page Toque reads: if it
+  changes, the sleeping screen goes back to the time. Never during a program, an alert or a recipe
+  sync.
+- **A status bar that says what the base sees**: lid open or **bowl removed**, the bowl's
+  temperature once the base measures one (it gives none when cold), the link to the base; large
+  Back and Home buttons.
+- **Short Settings page**: controls and states only; the explanations are on a *Help on features*
+  page, opened from the top of Settings.
 - **Optional setting confirmation**: *Settings › Safety › Ask to confirm recipe settings* (on by
   default); when off, settings beyond the robot's limits are still refused.
 - **Recipes by source**: All / Lidl / Cookomix tabs (remembered) and a "Categories…" page listing
@@ -59,15 +83,18 @@ screen.
 - **Author, ratings and reviews**: each recipe shows who published it and its rating on the site,
   and the recipe page loads the users' comments (with Monsieur Cuisine's replies).
 - **Search that works**: ignores accents, plurals and typos ("bechamle", "risoto").
-  Search by ingredients (e.g. "chicken, curry"), filters, favorites.
+  Search by ingredients (e.g. "chicken, curry"), filters, favorites. The search index is saved:
+  the 4,000 recipes are there a second or two after start-up, and a favourite shows up at once.
 - **Guided cooking**: each step starts with one tap, the next step shows up by itself, built-in
   weighing, resume after a power cut. Settings that follow each other with nothing to do in
   between (rinsing, blending at several speeds…) start together with a single tap: the blade goes
   straight from one speed and temperature to the next without stopping.
 - **Manual cooking**, **Knead / Steam / Sauté** programs, **Turbo**, **scale**.
 - **Offline**: everything works without a network (no more "server unreachable" at startup).
-- **Always the right time**: the time zone comes from the Internet connection and the time from
-  the network (the robot has no clock battery); can be set by hand in *Settings › Date and time*.
+- **Always the right time**: the time and the time zone come from the Internet connection (the
+  robot has no clock battery); the zone can be chosen by hand in *Settings › Date and time*. After
+  a start, the clock is put back to the last known time, then set from the network; until then it
+  shows `--:--` rather than a wrong time.
 - **Made for a robot without Android buttons**: Toque opens at startup, and a **Back to Toque**
   button stays on top of the stock app when you open it.
 - **Updates from GitHub**: *Settings › Updates* checks this repository's
@@ -133,6 +160,7 @@ core/   Pure Kotlin logic, tested without Android
         protocol/  serial frames (15 bytes sent, 27 received, 4800 baud)
         machine/   safety rules, controller, 100 ms loop, links (root serial, TCP, demo)
         recipes/   model, stock database import, search, Cookomix → MCC conversion
+        photos/    reader of a Google Photos album shared by link (photo frame)
 app/    Android app (minSdk 23), no AndroidX
         machine/   motor control service (":machine" process) and IPC
         recipes/   local catalogue, Lidl and Cookomix syncs

@@ -32,6 +32,18 @@ une étape à la fois. Il sauvegarde d'abord le robot, le roote avec Magisk, ins
 ADB par Wi-Fi. Vous ne vous occupez que de la trappe, du câble, de l'interrupteur et d'un appui sur
 l'écran du robot.
 
+## Captures d'écran
+
+Prises sur un robot (SKMC 1200, écran de 1024 × 600).
+
+| Accueil | Cuisson manuelle (molettes) |
+|---|---|
+| ![Écran d'accueil](docs/images/accueil.png) | ![Cuisson manuelle](docs/images/manuel.png) |
+| **Catégories** | **Réglages** |
+| ![Catégories](docs/images/categories.png) | ![Réglages](docs/images/reglages.png) |
+| **Aide sur les fonctionnalités** | |
+| ![Page d'aide](docs/images/aide.png) | |
+
 ## Ce que fait Toque
 
 - **Interface sombre**, pensée pour l'écran 7" et le bouton rotatif du robot, fluide sur sa
@@ -48,10 +60,20 @@ l'écran du robot.
   réglage converti pour le MCC et contrôlé par les mêmes sécurités (détails plus bas).
 - **Cuisson manuelle aux boutons ou aux molettes** : boutons − / + ou molettes tactiles (choix
   « Boutons / Molettes », mémorisé), avec les mêmes limites de sécurité ; pendant la cuisson, un
-  cran par geste.
+  cran par geste. Turbo est en haut du panneau de droite, loin de Démarrer.
 - **Mise en veille de l'écran** : après 5, 10 (par défaut) ou 30 min sans contact, écran noir avec
-  l'heure ; un toucher ou le bouton rotatif le réveille. Jamais pendant un programme, une alerte ou
-  une synchro de recettes.
+  l'heure et la date, luminosité au minimum, ou **cadre photo** : les photos d'un album Google
+  Photos partagé par lien, dans un ordre mélangé, avec un fondu entre elles (Réglages › Écran de
+  veille : le lien de l'album, 10 à 60 secondes par photo, sa propre luminosité) ; le bouton
+  rotatif passe à la photo suivante ou précédente. Les photos sont lues en ligne à la taille de
+  l'écran et jamais enregistrées sur le robot ; les vidéos sont écartées. Toute personne qui a le
+  lien peut voir l'album, et Google ne documente pas la page que lit Toque : si elle change, la
+  veille revient à l'heure. Jamais pendant un programme, une alerte ou une synchro de recettes.
+- **Une barre d'état qui dit ce que voit la base** : couvercle ouvert ou **bol retiré**,
+  température du bol dès que la base en mesure une (elle n'en donne pas à froid), liaison avec la
+  base ; grands boutons Retour et Accueil.
+- **Page Réglages courte** : les commandes et les états seulement ; les explications sont dans une
+  page *Aide sur les fonctionnalités*, ouverte depuis le haut des Réglages.
 - **Confirmation des réglages au choix** : *Réglages › Sécurité › Faire confirmer les réglages des
   recettes* (activée par défaut) ; désactivée, les réglages hors limites restent refusés.
 - **Recettes par source** : onglets Tout / Lidl / Cookomix (mémorisés) et page « Catégories… »
@@ -61,14 +83,18 @@ l'écran du robot.
   fiche charge les commentaires des utilisateurs (avec les réponses de Monsieur Cuisine).
 - **Recherche qui marche** : insensible aux accents, aux pluriels et aux fautes de frappe
   (« bechamle », « risoto »). Recherche par ingrédients (« poulet, curry »), filtres, favoris.
+  L'index de recherche est enregistré : les 4 000 recettes sont là une à deux secondes après le
+  démarrage, et un favori apparaît tout de suite.
 - **Cuisine pas à pas** : chaque étape se lance d'un appui, l'étape suivante s'affiche toute
   seule, pesée intégrée, reprise après coupure. Les réglages qui se suivent sans geste à faire
   entre eux (rinçage, mixages en plusieurs vitesses…) partent ensemble d'un seul appui : la lame
   passe directement d'une vitesse et d'une température à l'autre, sans s'arrêter.
 - **Cuisson manuelle**, programmes **Pétrir / Vapeur / Rissoler**, **Turbo**, **balance**.
 - **Hors ligne** : tout fonctionne sans réseau (plus de « serveur injoignable » au démarrage).
-- **Heure toujours juste** : le fuseau horaire est trouvé d'après la connexion Internet et l'heure
-  vient du réseau (le robot n'a pas de pile d'horloge) ; réglable à la main dans Réglages › Date et heure.
+- **Heure toujours juste** : l'heure et le fuseau horaire viennent de la connexion Internet (le
+  robot n'a pas de pile d'horloge) ; le fuseau peut se choisir à la main dans Réglages › Date et
+  heure. Après un démarrage, l'horloge est remise à la dernière heure connue, puis réglée par le
+  réseau ; d'ici là elle affiche `--:--` plutôt qu'une heure fausse.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton
   **« Retour à Toque »** reste affiché par-dessus l'appli d'origine quand on l'ouvre.
 - **Mises à jour depuis GitHub** : Réglages › Mises à jour vérifie les
@@ -139,6 +165,7 @@ core/   Logique pure Kotlin, testée sans Android
         protocol/  trames série (15 octets émis, 27 reçus, 4800 bauds)
         machine/   règles de sécurité, contrôleur, boucle 100 ms, liaisons (série root, TCP, démo)
         recipes/   modèle, import de la base d'origine, recherche, conversion Cookomix → MCC
+        photos/    lecture d'un album Google Photos partagé par lien (cadre photo)
 app/    Appli Android (minSdk 23), sans AndroidX
         machine/   service de pilotage (processus « :machine ») et IPC
         recipes/   catalogue local, synchros Lidl et Cookomix
