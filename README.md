@@ -243,8 +243,8 @@ been run on all 2,437 recipes of the site. Since 18 November 2026 it also runs o
 (SKMC 1200). On 20 November 2026, version 0.7.5 was checked on that robot: root kept across a full
 power-off start (Magisk had dropped the grant, the boot script restored it), clock restored then
 set from the network, recipe list ready in under 2 s, bowl sensor measured in its three positions,
-photo frame showing a shared album. Not checked on a robot: what the photo frame does with an
-album that contains a video.
+photo frame showing a shared album (a video in the album is left out, as intended), next and
+previous photo with the rotary knob, and the screens shown above.
 
 ## Add a language
 
