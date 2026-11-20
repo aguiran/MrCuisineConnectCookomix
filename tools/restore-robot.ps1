@@ -6,6 +6,10 @@ if (-not (Test-Path $adb)) { $adb = "adb" }
 if ($Ip -ne "") { & $adb connect "${Ip}:5555" | Out-Host }
 & $adb push tools\robot\restore.sh /data/local/tmp/toque-restore.sh | Out-Null
 & $adb shell "su -c 'sh /data/local/tmp/toque-restore.sh'" | Out-Host
-if ($Uninstall) { & $adb uninstall app.toque | Out-Host }
+if ($Uninstall) {
+    # The boot script that keeps Toque allowed in Magisk goes with it (see tools\robot\setup-root.sh).
+    & $adb shell "su -c 'rm -f /data/adb/post-fs-data.d/toque-root-grant.sh /data/adb/toque-root-grant.log'" | Out-Host
+    & $adb uninstall app.toque | Out-Host
+}
 & $adb reboot
 Write-Host "Robot restarted on the stock app."

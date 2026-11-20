@@ -121,7 +121,7 @@ step, have the person switch it off. `ls /dev/cu.usbmodem*` lists nothing once i
 | 4 | `root` | agent | In TWRP: patches the *original* boot with Magisk, enables ADB in Android, authorizes the Mac's ADB key, pulls `boot-magisk.img`. |
 | 5 | `flash-root` | agent | Still in TWRP: writes TWRP into `recovery` and `boot-magisk.img` into `boot`. Checks first that both partitions hold what they should (else writes nothing), reads each one back. Power cycle as above → stock app. |
 | 6 | `android` | agent + person | Checks Magisk, installs its app; the person taps **Grant** on the robot once. Checks the boot partition. |
-| 7 | `install` | agent | Installs Toque, allows it in Magisk, starts it. |
+| 7 | `install` | agent | Installs Toque, allows it in Magisk (and keeps it allowed across restarts), starts it. Stops if any of this cannot be verified. |
 | 8 | first run | person | Empty bowl: Settings › Machine › Real machine › Apply, badge **Ready**, manual cooking 10 s speed 2. |
 | 9 | `wifi` | agent | ADB over Wi-Fi (port 5555), so the cable can go and the cover go back on. |
 
@@ -203,7 +203,7 @@ and without macFUSE the FUSE package stops mtkclient from starting
 | `android`: `su` returns nothing | The Magisk prompt was missed (it closes after 10 s and then refuses) | Person taps **Grant** quickly; if refused for good: Magisk app › Superuser › Shell › allow |
 | Toque shows "Base absente" / no motor link | Magisk busybox missing | `install` again (it runs `tools/robot/setup-root.sh`) |
 | Stuck in the stock app (no Home/Back buttons on this robot) | Normal | Floating **Back to Toque** button, or `adb shell am start -n app.toque/.ui.MainActivity` |
-| `Toque s'est vu refuser les droits` toasts | Magisk policy | `install` again (it allows Toque in Magisk's database) |
+| `Toque s'est vu refuser les droits` toasts, or a Magisk prompt for Toque at every start | On Android 6, Magisk 31.0 forgets app grants at each boot | `install` again: it allows Toque in Magisk's database and installs a boot script that restores the grant (`/data/adb/post-fs-data.d/toque-root-grant.sh`, result in `/data/adb/toque-root-grant.log`) |
 
 ## Undo
 

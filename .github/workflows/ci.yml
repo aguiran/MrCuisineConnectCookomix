@@ -25,6 +25,11 @@ jobs:
       - name: Tests (core) and debug build
         run: ./gradlew --no-daemon :core:test :app:assembleDebug
 
+      - name: Tests (install scripts)
+        run: |
+          bash tools/setup/tests/root-permissions.sh
+          bash tools/setup/tests/root-boot-grant.sh
+
       - name: Test report
         if: failure()
         uses: actions/upload-artifact@v4

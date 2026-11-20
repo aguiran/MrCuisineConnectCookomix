@@ -357,7 +357,7 @@ déjà enregistrées restent disponibles : voir [COOKOMIX-ERREURS.md](COOKOMIX-E
 | `flash-root` : *holds something unexpected* | Contenu inattendu sur le robot | Rien n'a été écrit. Ne pas continuer : `status`, et demander de l'aide |
 | `android` : l'appui sur **Autoriser** a été raté | La fenêtre de Magisk se ferme après 10 s | Relancer `android` et appuyer vite. Refusé pour de bon : appli Magisk › Superutilisateur › Shell › autoriser |
 | Toque affiche « Base absente » | Busybox de Magisk manquante | Relancer `install` |
-| Messages « Toque s'est vu refuser les droits » | Réglage de Magisk | Relancer `install` |
+| Messages « Toque s'est vu refuser les droits », ou fenêtre Magisk pour Toque à chaque démarrage | Sur Android 6, Magisk 31.0 oublie les autorisations des applis à chaque démarrage | Relancer `install` : il met en place un script de démarrage qui rétablit l'autorisation de Toque |
 | Bloqué dans l'appli d'origine | Normal, pas de bouton Retour sur ce robot | Bouton **« Retour à Toque »** |
 
 Toujours bloqué ? Envoyez le fichier `~/Toque/setup-log.txt` (et `~/Toque/mtk-<étape>-out.txt`
@@ -450,7 +450,10 @@ relit chaque partition.
 `--ip <adresse IP du robot>` ; un autre APK : `--apk <fichier>`). Il autorise aussi Toque dans
 Magisk (aucune fenêtre sur le robot : celle de Magisk se ferme seule au bout de 10 s puis refuse
 définitivement) et met en place la **busybox** de Magisk (`/data/adb/magisk/busybox`), dont Toque a
-besoin pour le port série.
+besoin pour le port série. Sur Android 6, Magisk 31.0 oublie les autorisations des applis à chaque
+démarrage (il ne suit pas le lien `/data/user/0`) : `install` ajoute donc un script de démarrage,
+`/data/adb/post-fs-data.d/toque-root-grant.sh`, qui rétablit l'autorisation de Toque et rien
+d'autre. Son dernier résultat est dans `/data/adb/toque-root-grant.log`.
 
 **`wifi`** revient à :
 
