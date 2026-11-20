@@ -260,7 +260,7 @@ class MainActivity : Activity() {
         if (event.action == MotionEvent.ACTION_SCROLL) {
             // Encodeur rotatif (AXIS_SCROLL) ou molette (AXIS_VSCROLL)
             val v = event.getAxisValue(AXIS_SCROLL).let { if (it == 0f) -event.getAxisValue(MotionEvent.AXIS_VSCROLL) else it }
-            val now = System.currentTimeMillis()
+            val now = android.os.SystemClock.elapsedRealtime()
             if (v != 0f && now - lastKnobMs > 40) {
                 lastKnobMs = now
                 if (current?.onKnob(if (v > 0) 1 else -1) == true) return true
@@ -277,9 +277,12 @@ class MainActivity : Activity() {
         when (e.type) {
             EventType.JOB_FINISHED -> chime(2)
             EventType.FAULT -> { chime(3); toast(e.message, Ui.DANGER) }
-            EventType.LID_OPENED -> if (snapshot.busy || snapshot.state != null)
-                toast(if (snapshot.bowlRemoved) tr("Bol retiré : pause") else tr("Couvercle ouvert : pause"), Ui.WARN)
-            EventType.JOB_PAUSED -> if (e.message != PauseReason.USER.label) toast(e.message, Ui.WARN)
+            // L'évènement arrive avant la mesure qui dit si c'est le couvercle ou tout le bol : le
+            // message attend les mesures suivantes (la base en envoie dix par seconde).
+            EventType.LID_OPENED -> if (snapshot.busy || snapshot.state != null) main.postDelayed({
+                if (snapshot.lidOpen) toast(if (snapshot.bowlRemoved) tr("Bol retiré : pause") else tr("Couvercle ouvert : pause"), Ui.WARN)
+            }, LID_TOAST_DELAY_MS)
+            EventType.JOB_PAUSED -> if (e.message != PauseReason.USER.label && e.message != PauseReason.LID.label) toast(e.message, Ui.WARN)
             EventType.TURBO_END -> toast(e.message, Ui.TEXT2)
             else -> Unit
         }
@@ -485,5 +488,14 @@ class MainActivity : Activity() {
             clockFormat.timeZone = java.util.TimeZone.getDefault()
             return clockFormat.format(Date())
         }
+
+        /** Date du jour (« Vendredi 20 novembre ») ; vide tant que l'heure n'est pas réglée. */
+        fun today(): String {
+            if (!app.toque.TimeSync.trusted) return ""
+            return SimpleDateFormat(tr("EEEE d MMMM"), I18n.locale).format(Date()).replaceFirstChar { it.uppercaseChar() }
+        }
+
+        /** Délai avant le message « couvercle ouvert » ou « bol retiré » (quelques mesures de la base). */
+        private const val LID_TOAST_DELAY_MS = 400L
     }
 }

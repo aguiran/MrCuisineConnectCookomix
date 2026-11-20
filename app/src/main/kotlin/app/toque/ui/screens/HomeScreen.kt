@@ -122,8 +122,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
 
     private fun refreshClock() {
         clock.text = MainActivity.now()
-        date.text = if (!app.toque.TimeSync.trusted) tr("Réglage de l'heure…")
-        else SimpleDateFormat(tr("EEEE d MMMM"), I18n.locale).format(Date()).replaceFirstChar { it.uppercaseChar() }
+        date.text = MainActivity.today().ifEmpty { tr("Réglage de l'heure…") }
         // Heure pas encore réglée : pas de « Bonsoir » à 9 h du matin.
         val h = if (app.toque.TimeSync.trusted) java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) else 8
         greeting.text = when (h) {
