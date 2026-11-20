@@ -18,6 +18,7 @@ import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
 import app.toque.core.machine.RootShell
 import app.toque.core.machine.Snapshot
+import app.toque.core.photos.SharedAlbum
 import app.toque.core.time.ZoneLookup
 import app.toque.core.update.Release
 import app.toque.recipes.CookomixSync
@@ -25,6 +26,7 @@ import app.toque.recipes.LidlSync
 import app.toque.recipes.OnlineSync
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
+import app.toque.ui.PhotoFrame
 import app.toque.ui.Screen
 import app.toque.ui.Ui
 import app.toque.update.Updater
@@ -44,6 +46,8 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     private lateinit var bowlText: TextView
     private lateinit var linkText: TextView
     private lateinit var timeText: TextView
+    private lateinit var albumField: EditText
+    private lateinit var albumText: TextView
     private var settingTime = false
     private var mode = a.prefs.mode
     private var syncing = false
@@ -103,13 +107,39 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         safety.addView(Ui.text(c, tr("Les réglages qui se suivent sans geste à faire entre eux partent ensemble d'un seul appui sur Lancer : la lame passe directement à la vitesse et à la température suivantes."),
             15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
         safety.addView(toggle(tr("Sons"), a.prefs.sound) { a.prefs.sound = it }, Ui.lp(t = 10))
-        safety.addView(Ui.text(c, tr("Mise en veille de l'écran"), 18f, Ui.TEXT), Ui.lp(t = 14))
+
+        // ---- Écran de veille
+        val standby = section(left, tr("Écran de veille"), Icon.Kind.CLOCK)
         val sleepOptions = listOf("5" to tr("Après 5 min sans contact"), "10" to tr("Après 10 min sans contact"),
             "30" to tr("Après 30 min sans contact"), "0" to tr("Jamais"))
-        safety.addView(dropdown(sleepOptions, a.prefs.screenSleepMinutes.toString()) { a.prefs.screenSleepMinutes = it.toInt() },
-            Ui.lp(Ui.MATCH, Ui.u(58), t = 6))
-        safety.addView(Ui.text(c, tr("Écran noir avec l'heure ; un toucher ou le bouton rotatif le réveille. Jamais pendant un programme, une alerte ou une synchro de recettes."),
-            15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        standby.addView(dropdown(sleepOptions, a.prefs.screenSleepMinutes.toString()) { a.prefs.screenSleepMinutes = it.toInt() },
+            Ui.lp(Ui.MATCH, Ui.u(58), t = 4))
+        standby.addView(note(tr("Un toucher ou le bouton rotatif réveille l'écran. Jamais de veille pendant un programme, une alerte ou une synchro de recettes.")), Ui.lp(t = 6))
+        standby.addView(Ui.text(c, tr("Pendant la veille"), 18f, Ui.TEXT), Ui.lp(t = 14))
+        val photoBox = Ui.vertical(c)
+        photoBox.visibility = if (a.prefs.standbyPhotos) View.VISIBLE else View.GONE
+        standby.addView(dropdown(listOf("clock" to tr("Heure et date sur fond noir"), "photos" to tr("Cadre photo (album Google Photos)")),
+            if (a.prefs.standbyPhotos) "photos" else "clock") { choice ->
+            a.prefs.standbyPhotos = choice == "photos"
+            photoBox.visibility = if (choice == "photos") View.VISIBLE else View.GONE
+        }, Ui.lp(Ui.MATCH, Ui.u(58), t = 6))
+        standby.addView(photoBox)
+        albumField = field(a.prefs.photoAlbum, tr("Lien de partage de l'album"))
+        photoBox.addView(albumField, Ui.lp(Ui.MATCH, Ui.u(58), t = 12))
+        photoBox.addView(note(tr("Dans Google Photos, partagez un album par lien, puis saisissez ici le lien ou seulement sa fin (après photos.app.goo.gl/). Toute personne qui a ce lien peut voir l'album : le robot le lit tel quel, sans compte, et n'enregistre aucune photo. Les vidéos ne sont pas affichées.")),
+            Ui.lp(t = 6))
+        albumText = Ui.text(c, "", 16f, Ui.TEXT2).apply { setLineSpacing(0f, 1.15f) }
+        photoBox.addView(albumText, Ui.lp(t = 10))
+        photoBox.addView(Ui.button(c, tr("Vérifier l'album"), Ui.Style.SECONDARY, Icon.Kind.CHECK, height = 52, textSize = 18f) { checkAlbum() },
+            Ui.lp(Ui.WRAP, Ui.WRAP, t = 10))
+        val seconds = (10..60 step 10).map { it.toString() to tr("Une photo toutes les %d secondes", it) }
+        photoBox.addView(dropdown(seconds, a.prefs.photoSeconds.toString()) { a.prefs.photoSeconds = it.toInt() }, Ui.lp(Ui.MATCH, Ui.u(58), t = 14))
+        val brightness = listOf(5, 10, 20, 40, 60, 80, 100).map { it.toString() to tr("Luminosité des photos : %d %%", it) }
+        photoBox.addView(dropdown(brightness, a.prefs.photoBrightness.toString()) { a.prefs.photoBrightness = it.toInt() }, Ui.lp(Ui.MATCH, Ui.u(58), t = 8))
+        photoBox.addView(note(tr("Pendant le diaporama, un premier toucher met l'écran en pleine lumière, un second le réveille. Sans réseau, la veille affiche l'heure.")),
+            Ui.lp(t = 6))
+        photoBox.addView(Ui.button(c, tr("Lancer le diaporama"), Ui.Style.PRIMARY, Icon.Kind.PLAY, height = 58) { startPhotos() },
+            Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))
 
         // ---- Langue (titre bilingue : trouvable quelle que soit la langue affichée)
         val language = section(right, "Langue · Language", Icon.Kind.INFO)
@@ -199,6 +229,52 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         card.addView(head, Ui.lp(b = 10))
         parent.addView(card, Ui.lp(b = 16))
         return card
+    }
+
+    /** Texte d'explication sous un réglage. */
+    private fun note(text: String): TextView = Ui.text(c, text, 15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }
+
+    /** Enregistre le lien saisi ; faux (avec un message) s'il n'a pas la forme d'un lien de partage. */
+    private fun saveAlbum(): Boolean {
+        val typed = albumField.text.toString().trim()
+        val code = SharedAlbum.code(typed)
+        if (typed.isNotEmpty() && code == null) {
+            albumText.setTextColor(Ui.WARN)
+            albumText.text = tr("Lien non reconnu : il se termine par un code, comme photos.app.goo.gl/AbCd1234.")
+            return false
+        }
+        a.prefs.photoAlbum = code.orEmpty()
+        if (code != null && code != typed) albumField.setText(code)
+        albumText.setTextColor(Ui.TEXT2)
+        albumText.text = ""
+        return true
+    }
+
+    private fun checkAlbum() {
+        if (!saveAlbum()) return
+        val code = a.prefs.photoAlbum
+        if (code.isEmpty()) return
+        albumText.text = tr("Lecture de l'album…")
+        Thread {
+            val (ok, message) = try {
+                val album = PhotoFrame.album(code, fresh = true)
+                true to if (album.title.isEmpty()) tr("Album lu : %d photos", album.photos.size) else tr("Album « %s » : %d photos", album.title, album.photos.size)
+            } catch (e: SharedAlbum.UnreadableException) {
+                false to tr("Aucune photo trouvée à cette adresse : vérifiez que l'album est bien partagé par lien.")
+            } catch (e: Exception) {
+                false to tr("Album injoignable : vérifiez le Wi-Fi et le lien (%s).", e.message ?: e.javaClass.simpleName)
+            }
+            a.runOnUiThread {
+                albumText.setTextColor(if (ok) Ui.OK else Ui.WARN)
+                albumText.text = message
+            }
+        }.start()
+    }
+
+    private fun startPhotos() {
+        if (!saveAlbum()) return
+        if (a.prefs.photoAlbum.isEmpty()) a.toast(tr("Saisissez d'abord le lien de partage de l'album."), Ui.WARN)
+        else a.startPhotoFrame()
     }
 
     private fun field(value: String, hint: String) = EditText(c).apply {

@@ -135,6 +135,14 @@ l'écran du robot.
   robot n'a pas de pile d'horloge) ; le fuseau peut se choisir à la main dans Réglages › Date et
   heure. Après un démarrage, tant que le réseau n'a pas répondu, l'horloge affiche `--:--` plutôt
   qu'une heure fausse.
+- **Mise en veille de l'écran** : après 5, 10 ou 30 minutes sans contact, écran noir avec l'heure
+  et la date, luminosité au minimum, ou **cadre photo** : les photos d'un album Google Photos
+  partagé par lien, dans un ordre mélangé, avec un fondu entre elles (Réglages › Écran de veille :
+  le lien de l'album, 10 à 60 secondes par photo, sa propre luminosité). Les photos sont lues en
+  ligne à la taille de l'écran et jamais enregistrées sur le robot ; les vidéos sont écartées.
+  Toute personne qui a le lien peut voir l'album, et Google ne documente pas la page que lit
+  Toque : si elle change, la veille revient à l'heure. Jamais pendant un programme, une alerte ou
+  une synchro de recettes.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton
   **« Retour à Toque »** reste affiché par-dessus l'appli d'origine quand on l'ouvre.
 - **Mises à jour depuis GitHub** : Réglages › Mises à jour vérifie les
