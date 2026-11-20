@@ -6,10 +6,11 @@
 > make, alongside the Lidl recipes. Toque updates from **this** repository's releases (same
 > signature as the original, so it installs over it).
 >
-> **What has been tried.** The Cookomix version has run on an Android phone (Pixel) in Demo mode:
-> full sync, guided cooking against the simulated base. Its settings pass the tests against the
-> SDK's digital twin. **It has never run on a real robot yet**: keep setting confirmation on and
-> check each Cookomix setting the first times.
+> **What has been tried.** The Cookomix version has run on an Android phone (Pixel) in Demo mode
+> (full sync, guided cooking against the simulated base), its settings pass the tests against the
+> SDK's digital twin, and since 18 November 2026 it runs on **one real robot** (SKMC 1200: install
+> from a Mac, full Cookomix sync, first real-machine run with an empty bowl). One robot is not many:
+> keep setting confirmation on and check each Cookomix setting the first times.
 >
 > **How it works.** Cookomix has no open API (its mobile API needs a private key), so Toque reads
 > the site's public pages from the robot itself: the recipe list comes from the sitemaps, and each
@@ -69,9 +70,9 @@ uses **the official Lidl recipes**.
 > Independent project, not affiliated with Lidl, SilverCrest or Hoyer. Motor control is based on
 > a public analysis of the serial protocol; it has been running daily on a robot (SKMC 1200,
 > Android 6) since October 2026 and on a second one since November 2026, but has not been tried on
-> others (the original Toque; **this fork's Cookomix version has only run on a phone in Demo mode,
-> never on a real robot**: keep setting confirmation on and check each Cookomix setting the first
-> times). Use at your own risk and
+> others (the original Toque; **this fork's Cookomix version runs on one robot since 18 November
+> 2026**: keep setting confirmation on and check each Cookomix setting the first times). Use at your
+> own risk and
 > follow the first-run procedure.
 >
 > The interface is available in **English** and **French** (*Settings › Langue · Language*), and
@@ -126,8 +127,9 @@ screen.
   straight from one speed and temperature to the next without stopping.
 - **Manual cooking**, **Knead / Steam / Sauté** programs, **Turbo**, **scale**.
 - **Offline**: everything works without a network (no more "server unreachable" at startup).
-- **Always the right time**: the time zone comes from the Internet connection and the time from
-  the network (the robot has no clock battery); can be set by hand in *Settings › Date and time*.
+- **Always the right time**: the time and the time zone come from the Internet connection (the
+  robot has no clock battery); the zone can be chosen by hand in *Settings › Date and time*. Until
+  the network has answered after a start, the clock shows `--:--` rather than a wrong time.
 - **Made for a robot without Android buttons**: Toque opens at startup, and a **Back to Toque**
   button stays on top of the stock app when you open it.
 - **Updates from GitHub**: *Settings › Updates* checks this repository's
@@ -207,7 +209,8 @@ Android Studio's JDK works:
 
 **What has been tried**: the Cookomix version has run on a Pixel phone in Demo mode (full sync,
 guided cooking against the simulated base), its settings pass the twin tests, and the converter has
-been run on all 2,437 recipes of the site. It has never been tried on a real robot.
+been run on all 2,437 recipes of the site. Since 18 November 2026 it also runs on one real robot
+(SKMC 1200).
 
 ## Add a language
 

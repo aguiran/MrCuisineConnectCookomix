@@ -107,6 +107,18 @@ class ControllerTest {
         val v = b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 5_000))
         assertFalse(v.ok)
         assertTrue(v.has("lid"))
+        assertEquals("Fermez et verrouillez le couvercle", v.violations.first { it.code == "lid" }.message)
+    }
+
+    @Test fun refusalSaysWhenTheBowlIsMissing() {
+        val b = Bench().ready()
+        b.board.lidOpen = true
+        b.board.bowlPresent = false
+        b.step(200)
+        val v = b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 5_000))
+        assertTrue(v.has("lid"))
+        assertEquals("Remettez le bol et verrouillez le couvercle", v.violations.first { it.code == "lid" }.message)
+        assertTrue(b.snap.bowlRemoved)
     }
 
     @Test fun lidOpeningPausesAndNothingRestartsAlone() {

@@ -150,6 +150,8 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
 
     private lateinit var startBtn: View
     private var turboBtn: HoldButton? = null
+    /** Étape en cours non lançable : refusée par la sécurité, ou réglage importé pas encore vérifié. */
+    private var blocked = false
     private var reviewBtn: View? = null
     private var panelState: TextView? = null
 
@@ -257,7 +259,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
                 a.push(ManualScreen(a, m))
             }, Ui.lp(t = 8))
         }
-        val blocked = violations.isNotEmpty() || (confirm && index !in reviewed)
+        blocked = violations.isNotEmpty() || (confirm && index !in reviewed)
         Ui.setButtonEnabled(startBtn, !blocked)
     }
 
@@ -370,7 +372,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
             }
         }
         turboBtn?.let { t ->
-            t.isEnabled = !s.busy || s.turboActive
+            t.isEnabled = !blocked && (!s.busy || s.turboActive)
             t.alpha = if (t.isEnabled) 1f else 0.35f
         }
     }

@@ -55,8 +55,8 @@ puis `adb install -r Toque-X.Y.Z.apk`. Les mises à jour suivantes viendront de 
 - Toque tourne au quotidien sur deux robots : un installé depuis Windows (octobre 2026), un depuis
   un Mac (novembre 2026) (le Toque d'origine, sans Cookomix, installé par les projets d'origine).
   C'est peu : à vos risques.
-- **La version avec Cookomix n'a pas encore tourné sur un robot** (seulement sur un téléphone
-  Android en mode Démo). Elle ne change rien au pilotage du moteur ni aux règles de sécurité de
+- **La version avec Cookomix tourne sur un robot** (depuis le 18 novembre 2026) et sur un téléphone
+  Android en mode Démo. Elle ne change rien au pilotage du moteur ni aux règles de sécurité de
   Toque : les réglages des recettes Cookomix sont convertis pour le MCC, puis contrôlés par les
   mêmes sécurités que les recettes Lidl, et, par défaut, chacun est à confirmer avant d'être lancé
   (*Réglages › Sécurité › Faire confirmer les réglages des recettes*, à laisser activée). Vérifiez
@@ -262,11 +262,17 @@ bash tools/setup/toque-setup.sh install
 ✅ À la fin : `OK: Toque installed` et Toque s'ouvre sur le robot. Passez au premier essai
 ([partie 4](#4-après-linstallation)), puis revenez à l'étape 8.
 
-### Étape 8 · Se passer du câble — `wifi`
+### Étape 8 (facultative) · Se passer du câble — `wifi`
+
+Passez cette étape si vous n'avez pas besoin d'atteindre le robot depuis le Mac sans le câble :
+avec ADB par Wi-Fi, **n'importe quel appareil de votre réseau peut prendre la main sur le robot**
+(accès root compris). Toque fonctionne et se met à jour sans cela. Pour le couper plus tard, avec
+le câble : `adb shell su -c "setprop persist.adb.tcp.port ''"`, puis redémarrez le robot.
 
 Le robot doit être connecté au Wi-Fi de la maison. S'il ne l'est pas : dans Toque, touchez
-**5 fois rapidement l'heure** en haut à droite (paramètres Android), rejoignez le Wi-Fi, revenez
-avec le bouton **« Retour à Toque »**.
+**5 fois rapidement l'heure** en haut à droite (elle affiche `--:--` tant que le robot n'a pas
+joint Internet), rejoignez le Wi-Fi dans les paramètres Android, revenez avec le bouton
+**« Retour à Toque »**.
 
 ```
 bash tools/setup/toque-setup.sh wifi
@@ -359,6 +365,8 @@ déjà enregistrées restent disponibles : voir [COOKOMIX-ERREURS.md](COOKOMIX-E
 | Toque affiche « Base absente » | Busybox de Magisk manquante | Relancer `install` |
 | Messages « Toque s'est vu refuser les droits », ou fenêtre Magisk pour Toque à chaque démarrage | Sur Android 6, Magisk 31.0 oublie les autorisations des applis à chaque démarrage | Relancer `install` : il met en place un script de démarrage qui rétablit l'autorisation de Toque |
 | Bloqué dans l'appli d'origine | Normal, pas de bouton Retour sur ce robot | Bouton **« Retour à Toque »** |
+| L'horloge affiche `--:--` | Le robot n'a pas de pile d'horloge et n'a pas joint Internet depuis son démarrage | Vérifier le Wi-Fi (5 appuis rapides sur l'heure ouvrent les paramètres Android) ; l'heure revient ensuite toute seule |
+| *Réglages › Mises à jour* dit que la connexion sécurisée à GitHub est impossible | L'heure n'est pas encore réglée, ou pas d'Internet | Vérifier le Wi-Fi, attendre que l'horloge affiche l'heure, réessayer |
 
 Toujours bloqué ? Envoyez le fichier `~/Toque/setup-log.txt` (et `~/Toque/mtk-<étape>-out.txt`
 pour `backup` ou `flash-twrp`) à qui vous aide, ou ouvrez une

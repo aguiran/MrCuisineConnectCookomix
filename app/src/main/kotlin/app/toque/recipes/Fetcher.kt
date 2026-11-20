@@ -37,6 +37,31 @@ class Fetcher(private val version: String, private val repo: RecipeRepo) {
         if (!tmp.renameTo(File(repo.imagesDir, name))) tmp.delete()
     }
 
+    /**
+     * Photos manquantes des recettes [ids]. Une photo en échec n'arrête pas les autres ; cinq
+     * échecs de réseau de suite arrêtent la série (elle reprendra à la prochaine synchro).
+     */
+    fun photos(ids: Set<String>, pauseMs: Long, log: (String) -> Unit, progress: (String) -> Unit) {
+        val missing = repo.index.entries.filter { it.id in ids }.map { it.image }
+            .filter { it.startsWith("http") && repo.imageFile(it) == null }
+        var inARow = 0
+        for ((i, url) in missing.withIndex()) {
+            progress(tr("Photos : %d / %d", i + 1, missing.size))
+            try {
+                savePhoto(url)
+                inARow = 0
+            } catch (e: IOException) {
+                log("photo $url : ${e.message}")
+                if (++inARow >= 5) return
+            } catch (e: Exception) {
+                log("photo $url : $e")
+            } catch (e: OutOfMemoryError) {
+                log("photo $url : mémoire insuffisante")
+            }
+            pause(pauseMs)
+        }
+    }
+
     /** GET avec reprises espacées si le serveur demande de ralentir (429) ou est indisponible (5xx). */
     fun download(url: String, headers: Map<String, String>, maxBytes: Int): ByteArray {
         var attempt = 0

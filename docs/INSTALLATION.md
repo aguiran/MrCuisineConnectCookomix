@@ -54,7 +54,7 @@ and run `adb install -r Toque-X.Y.Z.apk`. Later updates then come from this repo
 - Toque runs every day on two robots: one installed from Windows (October 2026), one from a Mac
   (November 2026) (the original Toque, without Cookomix, installed by the upstream projects). That
   is not many: at your own risk.
-- **The Cookomix version has not run on a robot yet** (only on an Android phone in Demo mode). It
+- **The Cookomix version runs on one robot** (since 18 November 2026) and on an Android phone in Demo mode. It
   changes nothing in motor control or Toque's safety rules: Cookomix settings are converted for the
   MCC, then checked by the same safety rules as Lidl recipes, and, by default, each one must be
   confirmed before it starts (*Settings › Safety › Ask to confirm recipe settings*, keep it on).
@@ -259,10 +259,16 @@ bash tools/setup/toque-setup.sh install
 ✅ At the end: `OK: Toque installed` and Toque opens on the robot. Do the first run
 ([part 4](#4-after-the-install)), then come back to step 8.
 
-### Step 8 · No more cable — `wifi`
+### Step 8 (optional) · No more cable — `wifi`
+
+Skip this step if you do not need to reach the robot from the Mac without the cable: with ADB over
+Wi-Fi, **any device on your home network can take control of the robot** (root access included).
+Toque works and updates itself without it. To turn it off later, with the cable:
+`adb shell su -c "setprop persist.adb.tcp.port ''"`, then restart the robot.
 
 The robot must be on the home Wi-Fi. If it is not: in Toque, tap **the clock 5 times quickly** at
-the top right (Android settings), join the Wi-Fi, come back with the **"Back to Toque"** button.
+the top right (it shows `--:--` until the robot has reached the Internet), join the Wi-Fi in the
+Android settings, come back with the **"Back to Toque"** button.
 
 ```
 bash tools/setup/toque-setup.sh wifi
@@ -319,8 +325,8 @@ at the next sync, except favourites) and **Nightly Cookomix sync** (off by defau
 account is needed: put the recipes you like in Toque's favourites (star on a recipe).
 
 Error codes CKX-01 to CKX-10: [COOKOMIX-ERREURS.md](COOKOMIX-ERREURS.md) (in French); saved recipes
-are never deleted when a sync fails. **The Cookomix version has not run on a robot yet** (only on a
-phone in Demo mode): check each setting the first times.
+are never deleted when a sync fails. The Cookomix version runs on one robot so far: check each
+setting the first times.
 
 ### Every day
 
@@ -351,6 +357,8 @@ phone in Demo mode): check each setting the first times.
 | Toque shows "No base" (no motor link) | Magisk's busybox missing | Run `install` again |
 | Magisk messages saying Toque was denied superuser rights, or a Magisk prompt for Toque at every start | On Android 6, Magisk 31.0 forgets app grants at each boot | Run `install` again: it puts a boot script in place that restores Toque's grant |
 | Stuck in the stock app | Normal, no Back button on this robot | **"Back to Toque"** button |
+| The clock shows `--:--` | The robot has no clock battery and has not reached the Internet since it started | Check the Wi-Fi (5 quick taps on the clock open the Android settings); the time then comes back by itself |
+| *Settings › Updates* says the secure connection to GitHub is impossible | The clock is not set yet, or there is no Internet | Check the Wi-Fi, wait for the clock to show the time, try again |
 
 Still stuck? Send `~/Toque/setup-log.txt` (and `~/Toque/mtk-<step>-out.txt` for `backup` or
 `flash-twrp`) to whoever helps you, or open an
