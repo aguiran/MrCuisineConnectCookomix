@@ -224,11 +224,22 @@ class MainActivity : Activity() {
         return super.dispatchTouchEvent(ev)
     }
 
+    /**
+     * Le bouton rotatif réveille l'écran : comme pour un toucher, la suite du même geste (crans
+     * suivants, appui maintenu) est absorbée, jusqu'à une courte pause.
+     */
+    private var knobWakeUntil = 0L
+
+    private fun knobWakes(): Boolean {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (!standby.sleeping && now >= knobWakeUntil) return false
+        standby.wake()
+        knobWakeUntil = now + KNOB_WAKE_MS
+        return true
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (standby.sleeping) {
-            if (event.action == KeyEvent.ACTION_DOWN) standby.wake()
-            return true
-        }
+        if (knobWakes()) return true
         standby.touched()
         knobListener?.let { l ->
             if (event.action == KeyEvent.ACTION_DOWN) l(event)
@@ -252,15 +263,12 @@ class MainActivity : Activity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-        if (event.action == MotionEvent.ACTION_SCROLL && standby.sleeping) {
-            standby.wake()
-            return true
-        }
+        if (event.action == MotionEvent.ACTION_SCROLL && knobWakes()) return true
         standby.touched()
         if (event.action == MotionEvent.ACTION_SCROLL) {
             // Encodeur rotatif (AXIS_SCROLL) ou molette (AXIS_VSCROLL)
             val v = event.getAxisValue(AXIS_SCROLL).let { if (it == 0f) -event.getAxisValue(MotionEvent.AXIS_VSCROLL) else it }
-            val now = System.currentTimeMillis()
+            val now = android.os.SystemClock.elapsedRealtime()
             if (v != 0f && now - lastKnobMs > 40) {
                 lastKnobMs = now
                 if (current?.onKnob(if (v > 0) 1 else -1) == true) return true
@@ -277,9 +285,12 @@ class MainActivity : Activity() {
         when (e.type) {
             EventType.JOB_FINISHED -> chime(2)
             EventType.FAULT -> { chime(3); toast(e.message, Ui.DANGER) }
-            EventType.LID_OPENED -> if (snapshot.busy || snapshot.state != null)
-                toast(if (snapshot.bowlRemoved) tr("Bol retiré : pause") else tr("Couvercle ouvert : pause"), Ui.WARN)
-            EventType.JOB_PAUSED -> if (e.message != PauseReason.USER.label) toast(e.message, Ui.WARN)
+            // L'évènement arrive avant la mesure qui dit si c'est le couvercle ou tout le bol : le
+            // message attend les mesures suivantes (la base en envoie dix par seconde).
+            EventType.LID_OPENED -> if (snapshot.busy || snapshot.state != null) main.postDelayed({
+                if (snapshot.lidOpen) toast(if (snapshot.bowlRemoved) tr("Bol retiré : pause") else tr("Couvercle ouvert : pause"), Ui.WARN)
+            }, LID_TOAST_DELAY_MS)
+            EventType.JOB_PAUSED -> if (e.message != PauseReason.USER.label && e.message != PauseReason.LID.label) toast(e.message, Ui.WARN)
             EventType.TURBO_END -> toast(e.message, Ui.TEXT2)
             else -> Unit
         }
@@ -474,16 +485,18 @@ class MainActivity : Activity() {
 
         /** MotionEvent.AXIS_SCROLL (API 26), valeur fixe pour Android 6. */
         private const val AXIS_SCROLL = 26
-        private val clockFormat = SimpleDateFormat("HH:mm", Locale.FRANCE)
 
-        /**
-         * Heure affichée ; le fuseau peut changer en cours de route (réglage automatique).
-         * « --:-- » tant que l'heure du robot n'est pas réglée depuis le démarrage.
-         */
-        fun now(): String {
-            if (!app.toque.TimeSync.trusted) return "--:--"
-            clockFormat.timeZone = java.util.TimeZone.getDefault()
-            return clockFormat.format(Date())
+        /** Heure affichée (« --:-- » tant qu'elle n'est pas confirmée depuis le démarrage). */
+        fun now(): String = app.toque.TimeSync.clock()
+
+        /** Date du jour (« Vendredi 20 novembre ») ; vide tant que l'heure n'est pas réglée. */
+        fun today(): String {
+            if (!app.toque.TimeSync.trusted) return ""
+            return SimpleDateFormat(tr("EEEE d MMMM"), I18n.locale).format(Date()).replaceFirstChar { it.uppercaseChar() }
         }
+
+        /** Délai avant le message « couvercle ouvert » ou « bol retiré » (quelques mesures de la base). */
+        private const val LID_TOAST_DELAY_MS = 400L
+        private const val KNOB_WAKE_MS = 600L
     }
 }

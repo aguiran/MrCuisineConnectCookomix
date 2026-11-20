@@ -195,9 +195,22 @@ class CookomixTest {
         assertEquals(StepProgram.TURBO, t.program)
         assertEquals(Accessory.WHISK, t.accessory)
         assertTrue(!t.valid)
+        // Deux verbes dans la phrase : celui qui précède « fouet » décide.
+        val both = Cookomix.parsePage(page("""{"action":"other","action_desc":"Retirer le gobelet doseur et insérer le fouet."}""", mix("6")), "u")
+        assertEquals(Accessory.WHISK, both.recipe!!.steps.mapNotNull { it.machine }.single().accessory)
+        // Un réglage qui dit de retirer le fouet ensuite tourne encore avec lui ; le suivant, non.
+        val after = Cookomix.parsePage(page(
+            """{"action":"other","action_desc":"Insérer le fouet."}""",
+            """{"action":"mix","action_verb":"fouetter","action_desc":"puis retirer le fouet","mix_duration":"30","mix_temp":"0","mix_speed":"6"}""",
+            mix("8")), "u")
+        assertEquals(listOf(Accessory.WHISK, Accessory.BLADE), after.recipe!!.steps.mapNotNull { it.machine }.map { it.accessory })
         // Accessoire inconnu : recette refusée plutôt que de deviner.
         val unknown = Cookomix.parsePage(page("""{"action":"add-accessory","addaccessory":"spiralizer","action_desc":"Ajouter l'accessoire."}""", mix("4")), "u")
         assertEquals(Cookomix.Compat.INCOMPATIBLE, unknown.compat)
+    }
+
+    @Test fun speedThatIsNotANumberIsRefused() {
+        assertEquals(Cookomix.Compat.INCOMPATIBLE, Cookomix.parsePage(page(mix("NaN")), "u").compat)
     }
 
     @Test fun halfSpeedsAreFlagged() {
@@ -217,6 +230,9 @@ class CookomixTest {
             """{"action":"mix","action_verb":"cuire","mix_duration":"1:30","mix_temp":"100","mix_speed":"1"}""",
             """{"action":"mix","action_verb":"cuire","mix_duration":"90","mix_temp":"100","mix_speed":""}""",
             """{"action":"mix","action_verb":"cuire","mix_duration":"90","mix_speed":"1"}""",
+            // Durées absurdes : ne pas en faire des milliers d'étapes.
+            """{"action":"mix","action_verb":"cuire","mix_duration":"1e12","mix_temp":"100","mix_speed":"1"}""",
+            """{"action":"mix","action_verb":"cuire","mix_duration":"Infinity","mix_temp":"100","mix_speed":"1"}""",
         )) assertEquals(bad, Cookomix.Compat.UNREADABLE, Cookomix.parsePage(page(bad), "u").compat)
     }
 

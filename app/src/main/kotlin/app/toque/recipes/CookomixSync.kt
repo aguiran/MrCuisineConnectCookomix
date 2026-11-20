@@ -8,7 +8,9 @@ import app.toque.core.i18n.tr
 import app.toque.core.json.Json
 import app.toque.core.json.obj
 import app.toque.core.recipes.Cookomix
+import app.toque.core.recipes.Origin
 import app.toque.core.recipes.Recipe
+import app.toque.replaceAtomically
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -36,14 +38,17 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
     private val indexFile = File(context.filesDir, "recettes-cookomix.json")
     private val fetcher = Fetcher(version, repo)
 
-    /** Ligne d'index : date de mise à jour du sitemap, verdict, identifiant Toque. */
-    private class Mark(val lastmod: String, val status: String, val id: String) {
-        override fun toString() = "$lastmod|$status|$id"
+    /**
+     * Ligne d'index : date de mise à jour du sitemap, verdict, identifiant Toque, et version des
+     * règles de conversion qui ont produit la recette (1 pour les lignes écrites avant ce champ).
+     */
+    private class Mark(val lastmod: String, val status: String, val id: String, val conversion: Int = Cookomix.CONVERSION) {
+        override fun toString() = "$lastmod|$status|$id|$conversion"
 
         companion object {
             fun of(s: String?): Mark? {
                 val p = s?.split('|') ?: return null
-                return if (p.size < 3) null else Mark(p[0], p[1], p[2])
+                return if (p.size < 3) null else Mark(p[0], p[1], p[2], p.getOrNull(3)?.toIntOrNull() ?: 1)
             }
         }
     }
@@ -86,7 +91,10 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
             if (maps.isEmpty()) return failure(Cookomix.Error.LIST_UNREADABLE, tr("aucun sitemap de recettes"))
             for ((i, url) in maps.withIndex()) {
                 progress(tr("Liste des recettes Cookomix… %d / %d", i + 1, maps.size))
-                entries += Cookomix.parseSitemap(text(url))
+                // Un sitemap vide n'annonce pas des recettes retirées : c'est le site qui répond de travers.
+                val listed = Cookomix.parseSitemap(text(url))
+                if (listed.isEmpty()) return failure(Cookomix.Error.LIST_UNREADABLE, tr("sitemap sans recette : %s", url.substringAfterLast('/')))
+                entries += listed
                 pause(600)
             }
         } catch (e: IOException) {
@@ -96,14 +104,14 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         if (Cookomix.listLooksWrong(index.size, entries.size))
             return failure(Cookomix.Error.LIST_SHRUNK, tr("%d recettes au lieu de %d", entries.size, index.size))
 
-        // 2. Pages nouvelles ou modifiées (ou compatibles mais absentes du catalogue).
+        // 2. Pages nouvelles, modifiées ou converties avec d'anciennes règles (ou compatibles mais absentes du catalogue).
         val present = repo.ids()
         // Page illisible ou en échec : on garde la version déjà enregistrée (identifiant conservé).
         fun wanted(m: Mark) = m.status == OK || (m.status == ADAPTED && withAdapted) ||
             ((m.status == UNREADABLE || m.status == ERROR) && m.id.isNotEmpty())
         val todo = entries.filter { e ->
             val m = Mark.of(index[e.slug])
-            m == null || m.lastmod != e.lastmod || m.status == ERROR || m.status == UNREADABLE ||
+            m == null || m.lastmod != e.lastmod || m.conversion != Cookomix.CONVERSION || m.status == ERROR || m.status == UNREADABLE ||
                 ((m.status == OK || m.status == ADAPTED) && wanted(m) && m.id !in present)
         }
         val batch = ArrayList<Recipe>()
@@ -172,15 +180,16 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         val slugs = entries.map { it.slug }.toHashSet()
         index.keys.retainAll(slugs)
         // Une recette adaptée mise en favori reste, même si l'option « recettes adaptées » est coupée.
+        repo.awaitFavorites()
         val keep = index.values.mapNotNull { Mark.of(it) }
             .filter { it.id.isNotEmpty() && (wanted(it) || (it.status == ADAPTED && repo.isFavorite(it.id))) }
             .map { it.id }.toHashSet()
-        repo.removeAllExcept(keep, rebuild = false, scope = RecipeRepo.Scope.COOKOMIX)
+        repo.removeAllExcept(keep, rebuild = false, origin = Origin.COOKOMIX)
         writeIndex(index)
         repo.refresh()
 
         // 4. Photos manquantes.
-        photos(keep, progress)
+        fetcher.photos(keep, 300, { log.write("cookomix", it) }, progress)
 
         val marks = index.values.mapNotNull { Mark.of(it) }
         val ok = marks.count { it.status == OK }
@@ -224,32 +233,7 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
         pause(300)
     }
 
-    private fun photos(ids: Collection<String>, progress: (String) -> Unit) {
-        val missing = ArrayList<String>()
-        for (id in ids) {
-            val url = repo.get(id)?.image ?: continue
-            if (url.startsWith("http") && repo.imageFile(url) == null) missing += url
-        }
-        var inARow = 0
-        for ((i, url) in missing.withIndex()) {
-            progress(tr("Photos : %d / %d", i + 1, missing.size))
-            try {
-                fetcher.savePhoto(url)
-                inARow = 0
-            } catch (e: IOException) {
-                log.write("cookomix", "photo $url : ${e.message}")
-                if (++inARow >= 5) return
-            } catch (e: Exception) {
-                // Image mal formée : on passe à la suivante, la synchro des recettes est déjà faite.
-                log.write("cookomix", "photo $url : $e")
-            } catch (e: OutOfMemoryError) {
-                log.write("cookomix", "photo $url : mémoire insuffisante")
-            }
-            pause(300)
-        }
-    }
-
-    /** Page publique du site (aucune requête ne porte d'identifiant). */
+    /** Page publique du site. */
     private fun text(url: String): String =
         String(fetcher.download(url, mapOf("Accept-Language" to "fr-FR"), 4 * 1024 * 1024), Charsets.UTF_8)
 
@@ -261,9 +245,8 @@ class CookomixSync(private val context: Context, private val prefs: Prefs, priva
 
     private fun writeIndex(index: Map<String, String>) {
         try {
-            val tmp = File(indexFile.path + ".part")
-            tmp.writeText(Json.write(linkedMapOf("format" to 1, "recipes" to index)))
-            tmp.renameTo(indexFile)
+            val json = Json.write(linkedMapOf("recipes" to index))
+            indexFile.replaceAtomically { it.write(json.toByteArray()) }
         } catch (e: Exception) {
             log.write("cookomix", "index non enregistré : $e")
         }

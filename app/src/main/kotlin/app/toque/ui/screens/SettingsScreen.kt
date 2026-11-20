@@ -244,8 +244,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         val box = Ui.horizontal(c)
         box.setPadding(Ui.u(16), 0, Ui.u(14), 0)
         box.background = Ui.pressable(Ui.round(Ui.SURFACE2, 16f, Ui.STROKE, 1f), 16f)
-        val label = options.firstOrNull { it.first == selected }?.second ?: options.first().second
-        box.addView(Ui.text(c, label, 19f, Ui.TEXT), LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
+        var current = selected
+        val label = Ui.text(c, options.firstOrNull { it.first == current }?.second ?: options.first().second, 19f, Ui.TEXT)
+        box.addView(label, LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
         box.addView(Icon(c, Icon.Kind.CHEVRON, Ui.TEXT2).apply { rotation = 90f }, LinearLayout.LayoutParams(Ui.u(22), Ui.u(22)))
         box.isClickable = true
         box.setOnClickListener {
@@ -258,13 +259,17 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             val height = if (options.size > 7) Ui.u(400) else ViewGroup.LayoutParams.WRAP_CONTENT
             val popup = PopupWindow(scroll, box.width, height, false)
             for ((code, name) in options) {
-                val row = Ui.text(c, name, 19f, if (code == selected) Ui.ACCENT else Ui.TEXT)
+                val row = Ui.text(c, name, 19f, if (code == current) Ui.ACCENT else Ui.TEXT)
                 row.setPadding(Ui.u(16), Ui.u(14), Ui.u(16), Ui.u(14))
                 row.background = Ui.pressable(Ui.round(0, 0f), 0f)
                 row.isClickable = true
                 row.setOnClickListener {
                     popup.dismiss()
-                    if (code != selected) onPick(code)
+                    if (code != current) {
+                        current = code
+                        label.text = name
+                        onPick(code)
+                    }
                 }
                 list.addView(row, Ui.lp(Ui.MATCH, Ui.WRAP))
             }
@@ -331,7 +336,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
                     problems += tr("impossible de couper l'appli d'origine du moteur")
                 sync.forceStop()
             }
-            view.post {
+            a.runOnUiThread {
                 if (problems.isNotEmpty()) {
                     a.confirm(tr("Machine réelle indisponible"), problems.joinToString("\n") { "• $it" }, "OK", tr("Fermer")) {}
                 } else save()
@@ -353,7 +358,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
                     val sync = LidlSync(a, a.prefs, a.app.recipes, a.app.log)
                     sync.setVendorHardware(true)
                     val launch = sync.components().launch
-                    view.post {
+                    a.runOnUiThread {
                         if (launch != null) a.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                         else a.toast(tr("Appli d'origine introuvable"), Ui.WARN)
                     }
@@ -376,9 +381,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         syncing = true
         syncText.text = tr("Synchronisation en cours… (quelques minutes)")
         Thread {
-            val r = if (online) OnlineSync(a, a.prefs, a.app.recipes, a.app.log).sync { msg -> view.post { syncText.text = msg } }
-            else LidlSync(a, a.prefs, a.app.recipes, a.app.log).importNow { msg -> view.post { syncText.text = msg } }
-            view.post {
+            val r = if (online) OnlineSync(a, a.prefs, a.app.recipes, a.app.log).sync { msg -> a.runOnUiThread { syncText.text = msg } }
+            else LidlSync(a, a.prefs, a.app.recipes, a.app.log).importNow { msg -> a.runOnUiThread { syncText.text = msg } }
+            a.runOnUiThread {
                 syncing = false
                 refreshSync()
                 a.toast(r.message, if (r.ok) Ui.OK else Ui.WARN)
@@ -389,8 +394,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     private fun refreshTime(message: String? = null) {
         val zone = TimeSync.current()
         val mode = if (a.prefs.timeZone == ZoneLookup.AUTO) tr("automatique") else tr("choisi à la main")
-        timeText.text = tr("Il est %s · fuseau %s (%s)", TimeSync.clock(), zone.replace('_', ' '), mode) +
-            (message?.let { "\n" + it } ?: "")
+        val shown = zone.replace('_', ' ')
+        timeText.text = (if (TimeSync.trusted) tr("Il est %s · fuseau %s (%s)", TimeSync.clock(), shown, mode)
+            else tr("Heure non confirmée · fuseau %s (%s)", shown, mode)) + (message?.let { "\n" + it } ?: "")
     }
 
     private fun setClock() {
@@ -418,7 +424,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             // Synchro lancée avant d'ouvrir cet écran, de nuit, ou interrompue et sur le point de
             // reprendre toute seule : on suit sa progression.
             ckxText.text = CookomixSync.current.ifEmpty {
-                if (CookomixSync.isRunning) tr("Synchronisation Cookomix en cours…") else tr("Reprise automatique dans quelques secondes…")
+                if (CookomixSync.isRunning) tr("Synchronisation Cookomix en cours…") else tr("Reprise automatique dès que le réseau répond…")
             }
             ckxText.postDelayed(ckxPoll, 1_000)
             return
@@ -437,8 +443,8 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         ckxBusy = true
         ckxText.text = tr("Synchronisation Cookomix en cours…")
         Thread {
-            val r = CookomixSync(a, a.prefs, a.app.recipes, a.app.log).sync { msg -> view.post { ckxText.text = msg } }
-            view.post {
+            val r = CookomixSync(a, a.prefs, a.app.recipes, a.app.log).sync { msg -> a.runOnUiThread { ckxText.text = msg } }
+            a.runOnUiThread {
                 ckxBusy = false
                 refreshCookomix()
                 refreshSync()
@@ -454,7 +460,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             // Synchro lancée avant d'ouvrir cet écran, de nuit, ou interrompue et sur le point de
             // reprendre toute seule : on suit sa progression.
             syncText.text = OnlineSync.current.ifEmpty {
-                if (OnlineSync.isRunning) tr("Synchronisation en cours… (quelques minutes)") else tr("Reprise automatique dans quelques secondes…")
+                if (OnlineSync.isRunning) tr("Synchronisation en cours… (quelques minutes)") else tr("Reprise automatique dès que le réseau répond…")
             }
             syncText.postDelayed(lidlPoll, 1_000)
             return
@@ -511,17 +517,17 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
                 } catch (_: Exception) {
                 }
                 val r = updater.latest()
-                view.post {
+                a.runOnUiThread {
                     release = r
                     upd = if (updater.isNewer(r)) Upd.AVAILABLE else Upd.UP_TO_DATE
                     renderUpdate()
                     if (upd == Upd.AVAILABLE) installUpdate()
                 }
             } catch (e: Updater.Failure) {
-                view.post { upd = Upd.ERROR; updMessage = e.message ?: tr("Erreur"); renderUpdate() }
+                a.runOnUiThread { upd = Upd.ERROR; updMessage = e.message ?: tr("Erreur"); renderUpdate() }
             } catch (e: Exception) {
                 a.app.log.crash("maj", e)
-                view.post { upd = Upd.ERROR; updMessage = tr("Erreur inattendue : %s", e.message); renderUpdate() }
+                a.runOnUiThread { upd = Upd.ERROR; updMessage = tr("Erreur inattendue : %s", e.message); renderUpdate() }
             }
         }.start()
     }
@@ -547,14 +553,14 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
                 renderUpdate()
                 Thread {
                     try {
-                        val file = updater.download(r) { p -> view.post { updPercent = p; renderUpdate() } }
-                        view.post { upd = Upd.INSTALLING; renderUpdate() }
+                        val file = updater.download(r) { p -> a.runOnUiThread { updPercent = p; renderUpdate() } }
+                        a.runOnUiThread { upd = Upd.INSTALLING; renderUpdate() }
                         updater.install(file)
                     } catch (e: Updater.Failure) {
-                        view.post { updateFailed(e.message ?: tr("Erreur")) }
+                        a.runOnUiThread { updateFailed(e.message ?: tr("Erreur")) }
                     } catch (e: Exception) {
                         a.app.log.crash("maj", e)
-                        view.post { updateFailed(tr("Erreur inattendue : %s", e.message)) }
+                        a.runOnUiThread { updateFailed(tr("Erreur inattendue : %s", e.message)) }
                     }
                 }.start()
             }

@@ -336,7 +336,7 @@ class MachineController(
             return v
         }
         if (t.lidOpen) v += Violation("lid",
-            if (!t.bowlNtcDetected && t.actualTemperature == 0) tr("Remettez le bol et verrouillez le couvercle")
+            if (bowlRemoved(t.lidOpen, t.bowlNtcDetected, t.actualTemperature)) tr("Remettez le bol et verrouillez le couvercle")
             else tr("Fermez et verrouillez le couvercle"))
         if (t.errorDetected) v += Violation("board_error", Mcc.boardErrorMessage(t.errorCode))
         if (config.requireBowl && !t.bowlNtcDetected) v += Violation("bowl", tr("Bol non détecté"))

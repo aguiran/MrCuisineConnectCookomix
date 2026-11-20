@@ -45,7 +45,7 @@ class RecipesScreen(a: MainActivity, private val focusSearch: Boolean = false, f
     private lateinit var tabRow: LinearLayout
     private var query = ""
     private var results: List<SearchIndex.Hit> = emptyList()
-    private var generation = 0
+    @Volatile private var generation = 0
     private lateinit var input: EditText
     private lateinit var chips: LinearLayout
     private lateinit var grid: GridView
@@ -176,6 +176,8 @@ class RecipesScreen(a: MainActivity, private val focusSearch: Boolean = false, f
         val f = filter
         val index = a.app.recipes.index
         searchExec.execute {
+            // Frappe suivante déjà arrivée : cette recherche ne sera pas affichée.
+            if (gen != generation) return@execute
             val hits = if (q.contains(',')) index.withIngredients(q.split(','), f) else index.search(q, f)
             view.post {
                 if (gen != generation) return@post

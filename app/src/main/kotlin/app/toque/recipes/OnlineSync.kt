@@ -9,7 +9,9 @@ import app.toque.core.json.Json
 import app.toque.core.json.obj
 import app.toque.core.json.str
 import app.toque.core.recipes.McOnline
+import app.toque.core.recipes.Origin
 import app.toque.core.recipes.Recipe
+import app.toque.replaceAtomically
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -112,16 +114,16 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
 
         // 3. Le catalogue suit la liste du site (recettes retirées supprimées).
         val keep = entries.map { McOnline.toqueId(it.apiId) }.toHashSet()
-        repo.removeAllExcept(keep, rebuild = false, scope = RecipeRepo.Scope.LIDL)
+        repo.removeAllExcept(keep, rebuild = false, origin = Origin.LIDL)
         val kept = entries.map { it.apiId.toString() }.toHashSet()
         index.keys.retainAll(kept)
         writeIndex(language, index)
         repo.refresh()
 
         // 4. Photos manquantes.
-        photos(keep, progress)
+        fetcher.photos(keep, 150, { log.write("synchro", it) }, progress)
 
-        val n = repo.count
+        val n = repo.index.entries.count { Origin.LIDL.accepts(it.id) }
         val note = if (failures > 0) " " + tr("(%d en échec, réessayées à la prochaine synchro)", failures) else ""
         return LidlSync.Report(true, tr("%d recettes Lidl à jour", n) + note, n)
     }
@@ -132,33 +134,8 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
         writeIndex(language, index)
     }
 
-    private fun photos(ids: Collection<String>, progress: (String) -> Unit) {
-        val missing = ArrayList<String>()
-        for (id in ids) {
-            val url = repo.get(id)?.image ?: continue
-            if (url.startsWith("http") && repo.imageFile(url) == null) missing += url
-        }
-        var inARow = 0
-        for ((i, url) in missing.withIndex()) {
-            progress(tr("Photos : %d / %d", i + 1, missing.size))
-            try {
-                savePhoto(url)
-                inARow = 0
-            } catch (e: IOException) {
-                log.write("synchro", "photo $url : ${e.message}")
-                if (++inARow >= 5) return
-            }
-            pause(150)
-        }
-    }
-
-    private fun savePhoto(url: String) = fetcher.savePhoto(url)
-
     private fun get(url: String, language: String): String =
-        String(download(url, McOnline.headers(language), 4 * 1024 * 1024), Charsets.UTF_8)
-
-    private fun download(url: String, headers: Map<String, String>, maxBytes: Int): ByteArray =
-        fetcher.download(url, headers, maxBytes)
+        String(fetcher.download(url, McOnline.headers(language), 4 * 1024 * 1024), Charsets.UTF_8)
 
     private fun readIndex(): Pair<String, Map<String, String>> = try {
         val m = Json.parse(indexFile.readText()).obj()
@@ -170,9 +147,8 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
 
     private fun writeIndex(language: String, index: Map<String, String>) {
         try {
-            val tmp = File(indexFile.path + ".part")
-            tmp.writeText(Json.write(linkedMapOf("language" to language, "recipes" to index)))
-            tmp.renameTo(indexFile)
+            val json = Json.write(linkedMapOf("language" to language, "recipes" to index))
+            indexFile.replaceAtomically { it.write(json.toByteArray()) }
         } catch (e: Exception) {
             log.write("synchro", "index non enregistré : $e")
         }

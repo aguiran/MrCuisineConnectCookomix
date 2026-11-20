@@ -5,15 +5,12 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import app.toque.Prefs
-import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
 import app.toque.core.machine.Snapshot
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
 import app.toque.ui.Screen
 import app.toque.ui.Ui
-import java.text.SimpleDateFormat
-import java.util.Date
 
 class HomeScreen(a: MainActivity) : Screen(a) {
     override val title = "Toque"
@@ -122,8 +119,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
 
     private fun refreshClock() {
         clock.text = MainActivity.now()
-        date.text = if (!app.toque.TimeSync.trusted) tr("Réglage de l'heure…")
-        else SimpleDateFormat(tr("EEEE d MMMM"), I18n.locale).format(Date()).replaceFirstChar { it.uppercaseChar() }
+        date.text = MainActivity.today().ifEmpty { tr("Réglage de l'heure…") }
         // Heure pas encore réglée : pas de « Bonsoir » à 9 h du matin.
         val h = if (app.toque.TimeSync.trusted) java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) else 8
         greeting.text = when (h) {
@@ -140,7 +136,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
             !repo.loaded -> tr("Chargement…")
             n == 0 -> tr("Aucune recette pour l'instant")
             else -> {
-                val ckx = repo.index.entries.count { it.id.startsWith(app.toque.core.recipes.Cookomix.ID_PREFIX) }
+                val ckx = repo.index.entries.count { app.toque.core.recipes.Origin.COOKOMIX.accepts(it.id) }
                 if (ckx == 0) tr("%d recettes Lidl", n) else tr("%d Lidl · %d Cookomix", n - ckx, ckx)
             }
         }

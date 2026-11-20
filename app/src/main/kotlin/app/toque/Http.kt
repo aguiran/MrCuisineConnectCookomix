@@ -12,6 +12,22 @@ object Http {
 
     var userAgent = "Toque (Android; +https://github.com/Wuki60/MrCuisineVibeConnect)"
 
+    /** Heure du serveur (en-tête Date, 0 si absente), quelle que soit sa réponse ; le corps n'est pas lu. */
+    fun serverDate(url: String, timeoutMs: Int = 15_000): Long {
+        val c = Tls.apply(URL(url).openConnection() as HttpURLConnection)
+        try {
+            c.connectTimeout = timeoutMs
+            c.readTimeout = timeoutMs
+            c.requestMethod = "HEAD"
+            c.instanceFollowRedirects = false
+            c.setRequestProperty("User-Agent", userAgent)
+            c.responseCode
+            return c.date
+        } finally {
+            c.disconnect()
+        }
+    }
+
     fun get(url: String, headers: Map<String, String> = emptyMap(), timeoutMs: Int = 15_000, maxBytes: Int = 1024 * 1024): Response {
         val c = Tls.apply(URL(url).openConnection() as HttpURLConnection)
         try {

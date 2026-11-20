@@ -150,7 +150,7 @@ class SimBoard(private val clock: Clock) {
         r[0] = 0x55; r[1] = 27; r[2] = 0xB1.toByte()
         r[3] = status.toByte(); r[4] = ext.toByte(); r[5] = errorCode.toByte(); r[6] = speedLevel.toByte()
         putWord(r, 7, rpmForLevel[speedLevel]); putWord(r, 9, rpm.toInt())
-        r[11] = tempLevel.toByte(); putWord(r, 12, Mcc.celsiusForLevel(tempLevel)); putWord(r, 14, temp.toInt())
+        r[11] = tempLevel.toByte(); putWord(r, 12, Mcc.celsiusForLevel(tempLevel)); putWord(r, 14, if (bowlPresent) temp.toInt() else 0)
         r[16] = (weight shr 24).toByte(); r[17] = (weight shr 16).toByte(); r[18] = (weight shr 8).toByte(); r[19] = weight.toByte()
         putWord(r, 20, 5016)
         r[22] = 0x02; r[23] = 0; r[24] = 0

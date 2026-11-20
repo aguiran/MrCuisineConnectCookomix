@@ -208,6 +208,10 @@ class Dial(c: Context) : View(c) {
     var color = Ui.ACCENT
     var onPick: (Int) -> Unit = {}
     var onTouchStart: () -> Unit = {}
+    /** Nombre de crans dont un même geste peut déplacer le curseur (0 : sans limite). */
+    var maxStepsPerGesture = 0
+    private var dragging = false
+    private var startPosition = 0
     private var value = ""
     private var unit = ""
     private var sub = ""
@@ -232,7 +236,7 @@ class Dial(c: Context) : View(c) {
         if (size <= 0f) return
         val sw = size * 0.075f
         val cx = width / 2f
-        val cy = height / 2f + size * 0.04f
+        val cy = centerY()
         val rad = size / 2f - sw
         r.set(cx - rad, cy - rad, cx + rad, cy + rad)
         paint.style = Paint.Style.STROKE
@@ -284,23 +288,36 @@ class Dial(c: Context) : View(c) {
             MotionEvent.ACTION_DOWN -> {
                 parent?.requestDisallowInterceptTouchEvent(true)
                 onTouchStart()
-                pick(e)
+                startPosition = position
+                dragging = onArc(e)
+                if (dragging) pick(e)
             }
-            MotionEvent.ACTION_MOVE -> pick(e)
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> parent?.requestDisallowInterceptTouchEvent(false)
+            MotionEvent.ACTION_MOVE -> if (dragging) pick(e)
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                dragging = false
+                parent?.requestDisallowInterceptTouchEvent(false)
+            }
         }
         return true
     }
 
+    private fun centerY() = height / 2f + minOf(width, height) * 0.04f
+
+    /** Le geste commence-t-il sur l'arc ? Toucher la valeur au centre ne règle rien. */
+    private fun onArc(e: MotionEvent): Boolean {
+        val size = minOf(width, height).toFloat()
+        val arcRadius = size / 2f - size * 0.075f
+        return Math.hypot((e.x - width / 2f).toDouble(), (e.y - centerY()).toDouble()) >= arcRadius * 0.6f
+    }
+
     /** Angle du doigt → position ; dans l'ouverture du bas, on reste à l'extrémité la plus proche. */
     private fun pick(e: MotionEvent) {
-        val size = minOf(width, height).toFloat()
-        val cx = width / 2f
-        val cy = height / 2f + size * 0.04f
-        var deg = Math.toDegrees(Math.atan2((e.y - cy).toDouble(), (e.x - cx).toDouble())).toFloat()
+        val deg = Math.toDegrees(Math.atan2((e.y - centerY()).toDouble(), (e.x - width / 2f).toDouble())).toFloat()
         var rel = (deg - 135f + 360f) % 360f // 0 = début de l'arc, 270 = fin
         if (rel > 270f) rel = if (rel < 315f) 270f else 0f
-        val pos = Math.round(rel / 270f * (steps - 1)).coerceIn(0, steps - 1)
+        var pos = Math.round(rel / 270f * (steps - 1))
+        if (maxStepsPerGesture > 0) pos = pos.coerceIn(startPosition - maxStepsPerGesture, startPosition + maxStepsPerGesture)
+        pos = pos.coerceIn(0, steps - 1)
         if (pos != position) onPick(pos)
     }
 }
