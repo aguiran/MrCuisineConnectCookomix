@@ -150,4 +150,64 @@ class RecipesTest {
         // « Petit déjeuner, Dessert » : rangée dans « Petit déjeuner », trouvable par « dessert ».
         assertTrue(idx.search("dessert", app.toque.core.recipes.RecipeFilter(origin = Origin.COOKOMIX)).any { it.entry.id == "ckx-2" })
     }
+
+    private fun roundTrip(idx: SearchIndex, favorites: Set<String> = emptySet()): SearchIndex {
+        val bytes = java.io.ByteArrayOutputStream()
+        java.io.DataOutputStream(bytes).use { idx.write(it) }
+        return SearchIndex.read(java.nio.ByteBuffer.wrap(bytes.toByteArray()), favorites)
+    }
+
+    @Test fun indexSurvivesSavingAndLoading() {
+        val idx = SearchIndex(builtin())
+        val back = roundTrip(idx, setOf("bechamel"))
+        assertEquals(idx.entries.map { it.copy(favorite = false) }, back.entries.map { it.copy(favorite = false) })
+        assertEquals(listOf("bechamel"), back.entries.filter { it.favorite }.map { it.id })
+        // Mêmes résultats, dans le même ordre, avec les mêmes scores.
+        for (q in listOf("", "bechamle", "risoto", "compote pomme", "potiro", "vapeur", "soupe")) {
+            val a = idx.withFavorites(setOf("bechamel")).search(q)
+            val b = back.search(q)
+            assertEquals(q, a.map { it.entry.id to it.score }, b.map { it.entry.id to it.score })
+        }
+        assertEquals(idx.withIngredients(listOf("oignon", "huile d'olive")).map { it.entry.id },
+            back.withIngredients(listOf("oignon", "huile d'olive")).map { it.entry.id })
+        assertEquals(0, roundTrip(SearchIndex(emptyList())).entries.size)
+    }
+
+    @Test fun damagedIndexFileIsRejected() {
+        val bytes = java.io.ByteArrayOutputStream()
+        java.io.DataOutputStream(bytes).use { SearchIndex(builtin()).write(it) }
+        val good = bytes.toByteArray()
+        fun rejected(data: ByteArray) = try {
+            SearchIndex.read(java.nio.ByteBuffer.wrap(data), emptySet())
+            false
+        } catch (_: Exception) {
+            true
+        }
+        assertTrue(rejected(good.copyOf(good.size / 2)))           // tronqué
+        assertTrue(rejected(good + byteArrayOf(0)))                 // données en trop
+        assertTrue(rejected(good.copyOf().also { it[3] = 99 }))     // autre format
+        assertTrue(rejected(ByteArray(0)))
+        // Un document hors index (dernier entier du fichier) est refusé, pas lu de travers.
+        assertTrue(rejected(good.copyOf().also { it[it.size - 4] = 0x7f }))
+    }
+
+    @Test fun favoritesChangeWithoutRebuilding() {
+        val idx = SearchIndex(builtin())
+        assertTrue(idx.withFavorites(emptySet()) === idx)
+        val fav = idx.withFavorites(setOf("risotto-champignons"))
+        val favOnly = app.toque.core.recipes.RecipeFilter(favoritesOnly = true)
+        assertEquals(listOf("risotto-champignons"), fav.search("", favOnly).map { it.entry.id })
+        assertEquals("risotto-champignons", fav.search("").first().entry.id) // favoris en tête
+        assertEquals(0, fav.withFavorites(emptySet()).search("", favOnly).size)
+        assertEquals(idx.search("champignon").map { it.entry.id }, fav.search("champignon").map { it.entry.id })
+    }
+
+    @Test fun listsAreNotCapped() {
+        val base = builtin()
+        val many = (0 until 80).flatMap { n -> base.map { it.copy(id = it.id + n, title = it.title + " $n") } }
+        val idx = SearchIndex(many)
+        assertTrue(many.size > 500)
+        assertEquals(many.size, idx.search("").size)
+        assertEquals(3, idx.search("", limit = 3).size)
+    }
 }
