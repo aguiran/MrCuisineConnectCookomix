@@ -44,10 +44,14 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
     }
 
     override fun onDraw(canvas: Canvas) {
-        val s = minOf(width, height) / 24f
+        // Dessin vectoriel sur une grille de 24, dans la zone laissée par les marges intérieures
+        // (un bouton plus grand que son icône garde ainsi un trait fin).
+        val w = width - paddingLeft - paddingRight
+        val h = height - paddingTop - paddingBottom
+        val s = minOf(w, h) / 24f
         if (s <= 0f) return
         canvas.save()
-        canvas.translate((width - 24 * s) / 2f, (height - 24 * s) / 2f)
+        canvas.translate(paddingLeft + (w - 24 * s) / 2f, paddingTop + (h - 24 * s) / 2f)
         canvas.scale(s, s)
         stroke.strokeWidth = 2f
         val p = path
@@ -140,7 +144,12 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
                 p.moveTo(12f, 3f); p.lineTo(22f, 20.5f); p.lineTo(2f, 20.5f); p.close(); canvas.drawPath(p, stroke)
                 canvas.drawLine(12f, 9.5f, 12f, 14f, stroke); canvas.drawCircle(12f, 17.3f, 1.2f, fill)
             }
-            Kind.HOME -> { p.moveTo(3.5f, 11f); p.lineTo(12f, 4f); p.lineTo(20.5f, 11f); canvas.drawPath(p, stroke); rect.set(6f, 10f, 18f, 20f); canvas.drawRect(rect, stroke) }
+            Kind.HOME -> {
+                // Maison d'un seul trait : toit, murs et porte.
+                p.moveTo(4f, 11f); p.lineTo(12f, 4f); p.lineTo(20f, 11f); p.lineTo(20f, 20f); p.lineTo(14.5f, 20f)
+                p.lineTo(14.5f, 14f); p.lineTo(9.5f, 14f); p.lineTo(9.5f, 20f); p.lineTo(4f, 20f); p.close()
+                canvas.drawPath(p, stroke)
+            }
             Kind.WHISK -> {
                 canvas.drawLine(12f, 21.5f, 12f, 15f, stroke)
                 rect.set(7f, 2.5f, 17f, 16f); canvas.drawOval(rect, stroke)
