@@ -349,7 +349,7 @@ phone in Demo mode): check each setting the first times.
 | `flash-root`: *holds something unexpected* | Unexpected content on the robot | Nothing was written. Do not continue: `status`, and ask for help |
 | `android`: the **Grant** tap was missed | Magisk's prompt closes after 10 s | Run `android` again and tap quickly. Refused for good: Magisk app › Superuser › Shell › allow |
 | Toque shows "No base" (no motor link) | Magisk's busybox missing | Run `install` again |
-| Magisk messages saying Toque was denied superuser rights | Magisk setting | Run `install` again |
+| Magisk messages saying Toque was denied superuser rights, or a Magisk prompt for Toque at every start | On Android 6, Magisk 31.0 forgets app grants at each boot | Run `install` again: it puts a boot script in place that restores Toque's grant |
 | Stuck in the stock app | Normal, no Back button on this robot | **"Back to Toque"** button |
 
 Still stuck? Send `~/Toque/setup-log.txt` (and `~/Toque/mtk-<step>-out.txt` for `backup` or
@@ -438,6 +438,9 @@ each partition back.
 `--ip <robot IP address>`; another APK: `--apk <file>`). It also allows Toque in Magisk (no prompt
 on the robot: Magisk's closes by itself after 10 s and then refuses for good) and puts Magisk's
 **busybox** in place (`/data/adb/magisk/busybox`), which Toque needs for the serial port.
+On Android 6, Magisk 31.0 forgets app grants at each boot (it does not follow the `/data/user/0`
+link): `install` therefore adds a boot script, `/data/adb/post-fs-data.d/toque-root-grant.sh`, that
+restores Toque's grant and nothing else. Its last result is in `/data/adb/toque-root-grant.log`.
 
 **`wifi`** amounts to:
 
