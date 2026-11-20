@@ -505,6 +505,11 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         renderUpdate()
         Thread {
             try {
+                // Sans heure juste, GitHub refuse la connexion sécurisée : on tente d'abord le réglage.
+                if (!TimeSync.trusted) try {
+                    TimeSync(a, a.prefs, a.app.log).run()
+                } catch (_: Exception) {
+                }
                 val r = updater.latest()
                 view.post {
                     release = r

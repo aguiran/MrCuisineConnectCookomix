@@ -475,8 +475,12 @@ class MainActivity : Activity() {
         private const val AXIS_SCROLL = 26
         private val clockFormat = SimpleDateFormat("HH:mm", Locale.FRANCE)
 
-        /** Heure affichée ; le fuseau peut changer en cours de route (réglage automatique). */
+        /**
+         * Heure affichée ; le fuseau peut changer en cours de route (réglage automatique).
+         * « --:-- » tant que l'heure du robot n'est pas réglée depuis le démarrage.
+         */
         fun now(): String {
+            if (!app.toque.TimeSync.trusted) return "--:--"
             clockFormat.timeZone = java.util.TimeZone.getDefault()
             return clockFormat.format(Date())
         }
