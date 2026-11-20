@@ -6,36 +6,57 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import app.toque.ToqueApp
 import app.toque.core.recipes.Cookomix
 import app.toque.core.recipes.Recipe
 import app.toque.core.recipes.RecipeCodec
 import app.toque.core.recipes.RecipeSource
 import app.toque.core.recipes.SearchIndex
+import java.io.BufferedOutputStream
+import java.io.DataOutputStream
 import java.io.File
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 
 /**
- * Recettes Lidl copiées localement (SQLite) + index de recherche en mémoire.
+ * Recettes copiées localement (SQLite) + index de recherche en mémoire.
  * L'appli fonctionne entièrement hors ligne ; seule la synchro passe par le réseau.
+ *
+ * Démarrage : l'index est relu d'un fichier (quelques secondes) au lieu d'être reconstruit en
+ * relisant toutes les recettes (environ une minute pour 4 000 recettes sur la tablette du robot).
+ * Le fichier porte le numéro de révision de la base, augmenté à chaque écriture de recettes :
+ * s'il ne correspond plus, l'index est reconstruit puis réenregistré.
  */
 class RecipeRepo(private val context: Context) {
-    private val helper = object : SQLiteOpenHelper(context, "recettes.db", null, 1) {
+    private val helper = object : SQLiteOpenHelper(context, "recettes.db", null, 2) {
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE recipes (id TEXT PRIMARY KEY, title TEXT NOT NULL, json TEXT NOT NULL, updated INTEGER NOT NULL)")
             db.execSQL("CREATE TABLE favorites (id TEXT PRIMARY KEY)")
+            db.execSQL(CREATE_META)
         }
 
-        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if (oldVersion < 2) db.execSQL(CREATE_META)
+        }
     }
     private val exec = Executors.newSingleThreadExecutor { r -> Thread(r, "toque-recettes").apply { priority = Thread.NORM_PRIORITY - 1 } }
     private val main = Handler(Looper.getMainLooper())
     private val listeners = ArrayList<() -> Unit>()
+    private val indexFile = File(context.filesDir, "index-recettes.bin")
+
+    /** Protège [favorites] et la publication de [index] (interface et fil des recettes). */
+    private val lock = Any()
+    private val favorites = HashSet<String>()
+    @Volatile private var favoritesLoaded = false
 
     @Volatile var index: SearchIndex = SearchIndex(emptyList())
         private set
     @Volatile var loaded = false
         private set
-    private val favorites = HashSet<String>()
+    /** Révision de la base à laquelle correspond [index] (fil des recettes uniquement). */
+    private var indexRev = -1L
 
     val imagesDir: File get() = File(context.filesDir, "images").apply { mkdirs() }
 
@@ -44,15 +65,68 @@ class RecipeRepo(private val context: Context) {
         return { listeners -= l }
     }
 
-    private fun notifyChanged() = main.post { for (l in ArrayList(listeners)) l() }
+    private fun notifyChanged() {
+        main.post { for (l in ArrayList(listeners)) l() }
+    }
 
-    fun load() = exec.execute { rebuild() }
+    private fun log(line: String) {
+        (context.applicationContext as? ToqueApp)?.log?.write("recettes", line)
+    }
 
-    private fun rebuild() {
-        val db = helper.readableDatabase
+    fun load() = exec.execute {
+        try {
+            val t0 = SystemClock.elapsedRealtime()
+            val db = helper.readableDatabase
+            loadFavorites(db)
+            val rev = revision(db)
+            val cached = readIndexFile(rev)
+            if (cached == null) rebuild()
+            else {
+                synchronized(lock) { index = cached.withFavorites(favorites) }
+                indexRev = rev
+                loaded = true
+                log("index relu : ${cached.entries.size} recettes en ${SystemClock.elapsedRealtime() - t0} ms")
+                notifyChanged()
+            }
+        } catch (e: Exception) {
+            // Base illisible : l'appli reste utilisable (cuisson manuelle, programmes).
+            log("chargement impossible : $e")
+            loaded = true
+            notifyChanged()
+        }
+    }
+
+    private fun loadFavorites(db: SQLiteDatabase) {
         val favs = HashSet<String>()
         db.rawQuery("SELECT id FROM favorites", null).use { c -> while (c.moveToNext()) favs += c.getString(0) }
-        val list = ArrayList<Recipe>()
+        synchronized(lock) {
+            favorites.clear()
+            favorites += favs
+        }
+        favoritesLoaded = true
+    }
+
+    /** Révision de la base : augmente à chaque écriture de recettes. */
+    private fun revision(db: SQLiteDatabase): Long =
+        db.rawQuery("SELECT v FROM meta WHERE k = 'rev'", null).use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
+
+    /** À appeler dans la transaction de toute écriture dans la table des recettes. */
+    private fun bumpRevision(db: SQLiteDatabase) {
+        db.execSQL("INSERT OR REPLACE INTO meta (k, v) VALUES ('rev', COALESCE((SELECT v FROM meta WHERE k = 'rev'), 0) + 1)")
+    }
+
+    /** Reconstruit l'index seulement si des recettes ont été écrites depuis sa construction. */
+    private fun rebuildIfChanged() {
+        if (!loaded || revision(helper.readableDatabase) != indexRev) rebuild()
+    }
+
+    /** Relit toutes les recettes et reconstruit l'index (lent : fil des recettes uniquement). */
+    private fun rebuild() {
+        val t0 = SystemClock.elapsedRealtime()
+        val db = helper.readableDatabase
+        if (!favoritesLoaded) loadFavorites(db)
+        val rev = revision(db)
+        val builder = SearchIndex.Builder()
         db.rawQuery("SELECT json FROM recipes", null).use { c ->
             while (c.moveToNext()) {
                 val r = try {
@@ -60,16 +134,57 @@ class RecipeRepo(private val context: Context) {
                 } catch (_: Exception) {
                     null
                 } ?: continue
-                list += r.copy(favorite = r.id in favs)
+                builder.add(r.copy(favorite = false))
             }
         }
-        synchronized(favorites) {
-            favorites.clear()
-            favorites += favs
-        }
-        index = SearchIndex(list)
+        val built = builder.build()
+        // Les favoris ont pu changer pendant la reconstruction : on applique ceux du moment.
+        synchronized(lock) { index = built.withFavorites(favorites) }
+        indexRev = rev
         loaded = true
+        writeIndexFile(built, rev)
+        log("index reconstruit : ${built.entries.size} recettes en ${SystemClock.elapsedRealtime() - t0} ms")
         notifyChanged()
+    }
+
+    private val appVersion: Long by lazy {
+        try {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(context.packageName, 0).versionCode.toLong()
+        } catch (_: Exception) {
+            0L
+        }
+    }
+
+    /** Index enregistré pour cette version de l'appli et cette révision de la base, sinon null. */
+    private fun readIndexFile(rev: Long): SearchIndex? {
+        if (!indexFile.isFile) return null
+        return try {
+            val buf = ByteBuffer.wrap(indexFile.readBytes())
+            if (buf.int != INDEX_MAGIC || buf.long != appVersion || buf.long != rev) null
+            else SearchIndex.read(buf, emptySet())
+        } catch (e: Exception) {
+            log("index enregistré illisible (${e.message}) : reconstruction")
+            null
+        } catch (e: OutOfMemoryError) {
+            null
+        }
+    }
+
+    private fun writeIndexFile(built: SearchIndex, rev: Long) {
+        val tmp = File(indexFile.path + ".part")
+        try {
+            DataOutputStream(BufferedOutputStream(FileOutputStream(tmp), 64 * 1024)).use { out ->
+                out.writeInt(INDEX_MAGIC)
+                out.writeLong(appVersion)
+                out.writeLong(rev)
+                built.write(out)
+            }
+            if (!tmp.renameTo(indexFile)) tmp.delete()
+        } catch (e: Exception) {
+            tmp.delete()
+            log("index non enregistré : $e")
+        }
     }
 
     val count: Int get() = index.entries.size
@@ -87,15 +202,23 @@ class RecipeRepo(private val context: Context) {
         }
     }
 
-    fun isFavorite(id: String): Boolean = synchronized(favorites) { id in favorites }
+    fun isFavorite(id: String): Boolean = synchronized(lock) { id in favorites }
 
+    /** Visible tout de suite dans les listes (l'index n'est pas reconstruit) ; l'écriture suit. */
     fun setFavorite(id: String, favorite: Boolean) {
-        synchronized(favorites) { if (favorite) favorites += id else favorites -= id }
+        val apply = {
+            synchronized(lock) {
+                if (favorite) favorites += id else favorites -= id
+                index = index.withFavorites(favorites)
+            }
+            notifyChanged()
+        }
+        // Avant la fin du chargement, la liste des favoris n'est pas encore lue : on attend son tour.
+        if (favoritesLoaded) apply() else exec.execute(apply)
         exec.execute {
             val db = helper.writableDatabase
             if (favorite) db.execSQL("INSERT OR IGNORE INTO favorites (id) VALUES (?)", arrayOf(id))
             else db.execSQL("DELETE FROM favorites WHERE id = ?", arrayOf(id))
-            rebuild()
         }
     }
 
@@ -123,10 +246,12 @@ class RecipeRepo(private val context: Context) {
                 db.insertWithOnConflict("recipes", null, v, SQLiteDatabase.CONFLICT_REPLACE)
                 if (r.favorite) db.execSQL("INSERT OR IGNORE INTO favorites (id) VALUES (?)", arrayOf(r.id))
             }
+            bumpRevision(db)
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
         }
+        loadFavorites(db)
         rebuild()
     }
 
@@ -145,11 +270,12 @@ class RecipeRepo(private val context: Context) {
                     v.put("updated", now)
                     db.insertWithOnConflict("recipes", null, v, SQLiteDatabase.CONFLICT_REPLACE)
                 }
+                if (recipes.isNotEmpty()) bumpRevision(db)
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()
             }
-            if (rebuild) rebuild()
+            if (rebuild) rebuildIfChanged()
         }.get()
     }
 
@@ -176,17 +302,18 @@ class RecipeRepo(private val context: Context) {
             db.beginTransaction()
             try {
                 for (id in gone) db.delete("recipes", "id = ?", arrayOf(id))
+                if (gone.isNotEmpty()) bumpRevision(db)
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()
             }
-            if (rebuild) rebuild()
+            if (rebuild) rebuildIfChanged()
         }.get()
     }
 
     /** Recharge l'index de recherche (après des mises à jour sans [rebuild]). */
     fun refresh() {
-        exec.submit { rebuild() }.get()
+        exec.submit { rebuildIfChanged() }.get()
     }
 
     fun imageFile(name: String): File? {
@@ -200,4 +327,10 @@ class RecipeRepo(private val context: Context) {
     }
 
     fun runInBackground(block: () -> Unit) = exec.execute(block)
+
+    private companion object {
+        const val CREATE_META = "CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v INTEGER NOT NULL)"
+        /** « TQIX » : en-tête du fichier d'index. */
+        const val INDEX_MAGIC = 0x54514958
+    }
 }
