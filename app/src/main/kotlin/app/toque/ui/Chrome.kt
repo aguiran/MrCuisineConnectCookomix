@@ -101,7 +101,7 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
     fun update(s: Snapshot) {
         lid.visibility = if (s.hasSample && s.lidOpen) View.VISIBLE else View.GONE
         Ui.chipText(lid).text = if (s.bowlRemoved) tr("Bol retiré") else tr("Couvercle ouvert")
-        if (s.hasSample) {
+        if (s.temperatureKnown) {
             temp.visibility = View.VISIBLE
             Ui.chipText(temp).text = "${s.actualTempC} °C"
             val col = if (s.actualTempC >= 40) Ui.tempColor(s.actualTempC) else Ui.TEXT2

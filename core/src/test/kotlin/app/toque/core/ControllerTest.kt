@@ -382,6 +382,13 @@ class ControllerTest {
         assertFalse(open.copy(hasSample = false, bowlDetected = false).bowlRemoved)
     }
 
+    @Test fun zeroDegreesIsNotATemperature() {
+        val cold = app.toque.core.machine.Snapshot(hasSample = true, actualTempC = 0)
+        assertFalse(cold.temperatureKnown)
+        assertTrue(cold.copy(actualTempC = 37).temperatureKnown)
+        assertFalse(cold.copy(hasSample = false, actualTempC = 37).temperatureKnown)
+    }
+
     @Test fun requiringTheBowlRefusesWithoutIt() {
         val b = Bench(ControllerConfig(requireBowl = true)).ready()
         assertTrue(b.snap.bowlDetected)
