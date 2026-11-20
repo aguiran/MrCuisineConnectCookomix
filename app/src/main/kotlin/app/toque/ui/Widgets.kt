@@ -172,11 +172,14 @@ class TempRing(c: Context) : View(c) {
         text.typeface = Ui.THIN
         text.color = Ui.TEXT
         text.textSize = size * 0.30f
-        canvas.drawText("$actual°", cx + size * 0.03f, cy + size * 0.08f, text)
+        // 0 : la base ne donne pas de température à froid, ce n'est pas une mesure.
+        if (actual > 0) canvas.drawText("$actual°", cx + size * 0.03f, cy + size * 0.08f, text)
+        else canvas.drawText("—", cx, cy + size * 0.08f, text)
         text.typeface = Ui.REGULAR
         text.color = Ui.TEXT2
         text.textSize = size * 0.075f
-        canvas.drawText(if (target > 0) tr("consigne %d °C", target) else tr("mesuré"), cx, cy + size * 0.22f, text)
+        val caption = if (target > 0) tr("consigne %d °C", target) else if (actual > 0) tr("mesuré") else tr("pas de mesure à froid")
+        canvas.drawText(caption, cx, cy + size * 0.22f, text)
         // barres de vitesse réelle
         val bw = size * 0.035f
         val gap = size * 0.018f
