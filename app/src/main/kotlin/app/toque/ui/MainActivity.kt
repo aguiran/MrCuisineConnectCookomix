@@ -224,11 +224,22 @@ class MainActivity : Activity() {
         return super.dispatchTouchEvent(ev)
     }
 
+    /**
+     * Le bouton rotatif réveille l'écran : comme pour un toucher, la suite du même geste (crans
+     * suivants, appui maintenu) est absorbée, jusqu'à une courte pause.
+     */
+    private var knobWakeUntil = 0L
+
+    private fun knobWakes(): Boolean {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (!standby.sleeping && now >= knobWakeUntil) return false
+        standby.wake()
+        knobWakeUntil = now + KNOB_WAKE_MS
+        return true
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (standby.sleeping) {
-            if (event.action == KeyEvent.ACTION_DOWN) standby.wake()
-            return true
-        }
+        if (knobWakes()) return true
         standby.touched()
         knobListener?.let { l ->
             if (event.action == KeyEvent.ACTION_DOWN) l(event)
@@ -252,10 +263,7 @@ class MainActivity : Activity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-        if (event.action == MotionEvent.ACTION_SCROLL && standby.sleeping) {
-            standby.wake()
-            return true
-        }
+        if (event.action == MotionEvent.ACTION_SCROLL && knobWakes()) return true
         standby.touched()
         if (event.action == MotionEvent.ACTION_SCROLL) {
             // Encodeur rotatif (AXIS_SCROLL) ou molette (AXIS_VSCROLL)
@@ -477,17 +485,9 @@ class MainActivity : Activity() {
 
         /** MotionEvent.AXIS_SCROLL (API 26), valeur fixe pour Android 6. */
         private const val AXIS_SCROLL = 26
-        private val clockFormat = SimpleDateFormat("HH:mm", Locale.FRANCE)
 
-        /**
-         * Heure affichée ; le fuseau peut changer en cours de route (réglage automatique).
-         * « --:-- » tant que l'heure du robot n'est pas réglée depuis le démarrage.
-         */
-        fun now(): String {
-            if (!app.toque.TimeSync.trusted) return "--:--"
-            clockFormat.timeZone = java.util.TimeZone.getDefault()
-            return clockFormat.format(Date())
-        }
+        /** Heure affichée (« --:-- » tant qu'elle n'est pas confirmée depuis le démarrage). */
+        fun now(): String = app.toque.TimeSync.clock()
 
         /** Date du jour (« Vendredi 20 novembre ») ; vide tant que l'heure n'est pas réglée. */
         fun today(): String {
@@ -497,5 +497,6 @@ class MainActivity : Activity() {
 
         /** Délai avant le message « couvercle ouvert » ou « bol retiré » (quelques mesures de la base). */
         private const val LID_TOAST_DELAY_MS = 400L
+        private const val KNOB_WAKE_MS = 600L
     }
 }

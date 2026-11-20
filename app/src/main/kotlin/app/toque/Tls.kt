@@ -20,11 +20,23 @@ import javax.net.ssl.X509TrustManager
  * Racines dans assets/certs (empreintes SHA-256 dans le README de ce dossier).
  */
 object Tls {
-    @Volatile private var factory: SSLSocketFactory? = null
+    private var context: Context? = null
+    private var log: Logbook? = null
+    private var factory: SSLSocketFactory? = null
+    private var built = false
 
-    /** À appeler une fois au démarrage ; sans effet si les certificats ne peuvent pas être lus. */
+    /** À appeler une fois au démarrage ; les racines ne sont lues qu'à la première connexion HTTPS. */
     fun init(context: Context, log: Logbook) {
-        if (factory != null) return
+        this.context = context.applicationContext
+        this.log = log
+    }
+
+    /** Sans effet (racines d'Android seules) si les certificats ne peuvent pas être lus. */
+    @Synchronized
+    private fun factory(): SSLSocketFactory? {
+        if (built) return factory
+        built = true
+        val context = context ?: return null
         try {
             val cf = CertificateFactory.getInstance("X.509")
             val extra = KeyStore.getInstance(KeyStore.getDefaultType()).apply { load(null, null) }
@@ -54,8 +66,9 @@ object Tls {
             ctx.init(null, arrayOf(combined), null)
             factory = ctx.socketFactory
         } catch (e: Exception) {
-            log.write("tls", "racines ajoutées indisponibles : $e")
+            log?.write("tls", "racines ajoutées indisponibles : $e")
         }
+        return factory
     }
 
     private fun trustManager(store: KeyStore?): X509TrustManager {
@@ -66,8 +79,7 @@ object Tls {
 
     /** Applique ces racines à une connexion HTTPS (sans effet en HTTP ou si [init] a échoué). */
     fun apply(c: HttpURLConnection): HttpURLConnection {
-        val f = factory
-        if (f != null && c is HttpsURLConnection) c.sslSocketFactory = f
+        if (c is HttpsURLConnection) factory()?.let { c.sslSocketFactory = it }
         return c
     }
 }

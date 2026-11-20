@@ -8,6 +8,8 @@ import app.toque.core.json.list
 import app.toque.core.json.obj
 import app.toque.core.json.str
 import app.toque.core.machine.Accessory
+import app.toque.core.machine.Limits
+import app.toque.core.machine.SafetyPolicy
 import app.toque.core.protocol.Mcc
 
 /**
@@ -35,16 +37,23 @@ object Cookomix {
     const val TAG = "Cookomix"
     const val TAG_ADAPTED = "Adaptée MCC"
 
-    /** Durée maximale d'un pétrissage sur le MCC (limite de Toque). */
-    private const val MAX_KNEAD_S = 120
-    private const val MAX_MANUAL_S = 99 * 60
-    private const val MAX_HIGH_SPEED_S = 15 * 60
+    /**
+     * Version des règles de conversion. À augmenter quand elles changent le réglage produit pour
+     * une même page : les recettes déjà importées sont alors relues à la synchro suivante.
+     */
+    const val CONVERSION = 1
+
+    private const val MAX_KNEAD_S = (Limits.MAX_MS_KNEAD / 1000).toInt()
+    private const val MAX_MANUAL_S = (Limits.MAX_MS_DEFAULT / 1000).toInt()
+    private const val MAX_HIGH_SPEED_S = (Limits.MAX_MS_HIGH_SPEED / 1000).toInt()
     private const val MAX_TEMP_C = 130
-    private const val MAX_SPEED_HEATED = 3
-    private const val MAX_SPEED_REVERSE = 3
+    /** Au-delà, la durée d'une étape n'est pas crédible : la page est tenue pour illisible. */
+    private const val MAX_SOURCE_S = 12 * 3600.0
     private val WHISK_KEYS = setOf("butterfly-whisk", "butterfly", "whisk", "papillon", "fouet")
-    /** Accessoires sans effet sur les limites de vitesse (Varoma, panier). */
     private val WHISK_WORD = Regex("\\bfouet\\b")
+    private val REMOVE_VERBS = Regex("\\b(retirer|retirez|enlever|enlevez|ôter|ôtez|sortir|sortez)\\b")
+    private val INSERT_VERBS = Regex("\\b(insérer|insérez|mettre|mettez|placer|placez|ajouter|ajoutez|fixer|fixez|monter|montez)\\b")
+    /** Accessoires sans effet sur les limites de vitesse (Varoma, panier). */
     private val NEUTRAL_ACCESSORIES = setOf("varoma", "basket", "panier", "steamer")
 
     /** Verdict d'une page : UNREADABLE = format inattendu (site changé ?), pas une recette incompatible. */
@@ -60,10 +69,9 @@ object Cookomix {
         LIST_SHRUNK("CKX-04"),
         PAGES_UNREADABLE("CKX-05"),
         TOO_MANY_INCOMPATIBLE("CKX-06"),
-        // CKX-07 à CKX-09 (connexion au compte, carnet) : retirés en 0.7.1, numéros non réutilisés.
         INTERNAL("CKX-10");
 
-        /** Message affiché : code, cause, et ce qui arrive aux recettes déjà enregistrées. */
+        /** Message affiché : code et cause. */
         fun message(detail: String = ""): String {
             val text = when (this) {
                 NETWORK -> tr("cookomix.com injoignable")
@@ -160,7 +168,7 @@ object Cookomix {
     /** Réglage robot lisible : durée en secondes (nombre), vitesse et température présentes. */
     private fun wellFormedMix(m: Map<String, Any?>): Boolean {
         val d = m["mix_duration"]?.toString()?.trim()?.toDoubleOrNull() ?: return false
-        return d >= 0 && !m["mix_speed"]?.toString().isNullOrBlank() && m["mix_temp"] != null
+        return d in 0.0..MAX_SOURCE_S && !m["mix_speed"]?.toString().isNullOrBlank() && m["mix_temp"] != null
     }
 
     private fun parsePageOrThrow(html: String, url: String): Result {
@@ -342,13 +350,21 @@ object Cookomix {
         private var accessory = Accessory.BLADE
         private var preparation = ""
 
-        private fun whiskFromText(desc: String) {
+        /** Accessoire en place après ce texte, s'il dit de mettre ou de retirer le fouet (sinon null). */
+        private fun whiskAfter(desc: String): Accessory? {
             val d = desc.lowercase()
             // Le mot « fouet » seul : « fouetter », « crème fouettée » ne parlent pas de l'accessoire.
-            if (!WHISK_WORD.containsMatchIn(d)) return
-            when {
-                Regex("\\b(retirer|retirez|enlever|enlevez|ôter|ôtez|sortir|sortez)\\b").containsMatchIn(d) -> accessory = Accessory.BLADE
-                Regex("\\b(insérer|insérez|mettre|mettez|placer|placez|ajouter|ajoutez|fixer|fixez|monter|montez)\\b").containsMatchIn(d) -> accessory = Accessory.WHISK
+            val whisk = WHISK_WORD.findAll(d).lastOrNull() ?: return null
+            // Le verbe le plus proche avant « fouet » décide (« Retirer le gobelet et insérer le fouet »).
+            val before = d.substring(0, whisk.range.first)
+            val removed = REMOVE_VERBS.findAll(before).lastOrNull()?.range?.first ?: -1
+            val inserted = INSERT_VERBS.findAll(before).lastOrNull()?.range?.first ?: -1
+            return when {
+                removed > inserted -> Accessory.BLADE
+                inserted > removed -> Accessory.WHISK
+                REMOVE_VERBS.containsMatchIn(d) -> Accessory.BLADE
+                INSERT_VERBS.containsMatchIn(d) -> Accessory.WHISK
+                else -> null
             }
         }
 
@@ -373,9 +389,15 @@ object Cookomix {
                 val desc = adaptText(s.str("action_desc"))
                 // Le fouet compte pour la sécurité (vitesse 4 au plus, pas de Turbo) : on le suit aussi
                 // quand une étape ordinaire le met ou le retire (« Insérer le fouet », « Retirer le fouet »).
-                if (s.str("action") != "add-accessory" && s.str("action") != "remove-accessory") whiskFromText(desc)
-                when (s.str("action")) {
-                    "mix" -> mix(s, header + pending.joinToString(" ").let { if (it.isEmpty()) "" else "$it " })
+                val action = s.str("action")
+                val whisk = if (action != "add-accessory" && action != "remove-accessory") whiskAfter(desc) else null
+                // Un réglage dont le texte dit de retirer le fouet tourne encore avec lui.
+                if (whisk != null && !(action == "mix" && whisk == Accessory.BLADE)) accessory = whisk
+                when (action) {
+                    "mix" -> {
+                        mix(s, header + pending.joinToString(" ").let { if (it.isEmpty()) "" else "$it " })
+                        if (whisk == Accessory.BLADE) accessory = Accessory.BLADE
+                    }
                     "addtop", "addtop-w", "addtop-basket" -> if (desc.isNotEmpty()) pending += sentence(header + desc)
                     "add-accessory" -> {
                         val key = s.str("addaccessory")?.trim()?.lowercase().orEmpty()
@@ -471,7 +493,7 @@ object Cookomix {
                 return
             }
 
-            val speedF = speedRaw.replace(',', '.').toDoubleOrNull()
+            val speedF = speedRaw.replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
             if (speedF == null) {
                 incompatible(tr("vitesse « %s » sans équivalent", speedRaw))
                 return
@@ -519,14 +541,14 @@ object Cookomix {
                 }
             }
 
-            if (tempC > 0 && speed > MAX_SPEED_HEATED) {
+            if (tempC > 0 && speed > Limits.MAX_SPEED_HEATED) {
                 adapted(tr("vitesse %s en chauffe ramenée à 3 (limite du MCC)", speedRaw))
-                speed = MAX_SPEED_HEATED
+                speed = Limits.MAX_SPEED_HEATED
                 changed = true
             }
-            if (reverse && speed > MAX_SPEED_REVERSE) {
+            if (reverse && speed > Limits.MAX_SPEED_REVERSE) {
                 adapted(tr("vitesse %s en sens inverse ramenée à 3 (limite du MCC)", speedRaw))
-                speed = MAX_SPEED_REVERSE
+                speed = Limits.MAX_SPEED_REVERSE
                 changed = true
             }
             if (accessory == Accessory.WHISK && speed > Accessory.WHISK.maxSpeed) {
@@ -563,11 +585,7 @@ object Cookomix {
         }
     }
 
-    private fun duration(seconds: Int): String = when {
-        seconds < 60 -> "$seconds s"
-        seconds % 60 == 0 -> "${seconds / 60} min"
-        else -> "${seconds / 60} min ${seconds % 60} s"
-    }
+    private fun duration(seconds: Int): String = SafetyPolicy.formatDuration(seconds * 1000L)
 
     /** Réglage tel qu'écrit pour le Thermomix (affiché dans le texte de l'étape). */
     private fun tmSummary(seconds: Int, temp: String, speed: String, reverse: Boolean): String = buildList {

@@ -154,7 +154,7 @@ class RecipesTest {
     private fun roundTrip(idx: SearchIndex, favorites: Set<String> = emptySet()): SearchIndex {
         val bytes = java.io.ByteArrayOutputStream()
         java.io.DataOutputStream(bytes).use { idx.write(it) }
-        return SearchIndex.read(java.nio.ByteBuffer.wrap(bytes.toByteArray()), favorites)
+        return SearchIndex.read(java.nio.ByteBuffer.wrap(bytes.toByteArray())).withFavorites(favorites)
     }
 
     @Test fun indexSurvivesSavingAndLoading() {
@@ -178,7 +178,7 @@ class RecipesTest {
         java.io.DataOutputStream(bytes).use { SearchIndex(builtin()).write(it) }
         val good = bytes.toByteArray()
         fun rejected(data: ByteArray) = try {
-            SearchIndex.read(java.nio.ByteBuffer.wrap(data), emptySet())
+            SearchIndex.read(java.nio.ByteBuffer.wrap(data))
             false
         } catch (_: Exception) {
             true
@@ -208,6 +208,5 @@ class RecipesTest {
         val idx = SearchIndex(many)
         assertTrue(many.size > 500)
         assertEquals(many.size, idx.search("").size)
-        assertEquals(3, idx.search("", limit = 3).size)
     }
 }

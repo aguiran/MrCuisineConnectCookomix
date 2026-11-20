@@ -5,15 +5,12 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import app.toque.Prefs
-import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
 import app.toque.core.machine.Snapshot
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
 import app.toque.ui.Screen
 import app.toque.ui.Ui
-import java.text.SimpleDateFormat
-import java.util.Date
 
 class HomeScreen(a: MainActivity) : Screen(a) {
     override val title = "Toque"
@@ -139,7 +136,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
             !repo.loaded -> tr("Chargement…")
             n == 0 -> tr("Aucune recette pour l'instant")
             else -> {
-                val ckx = repo.index.entries.count { it.id.startsWith(app.toque.core.recipes.Cookomix.ID_PREFIX) }
+                val ckx = repo.index.entries.count { app.toque.core.recipes.Origin.COOKOMIX.accepts(it.id) }
                 if (ckx == 0) tr("%d recettes Lidl", n) else tr("%d Lidl · %d Cookomix", n - ckx, ckx)
             }
         }
