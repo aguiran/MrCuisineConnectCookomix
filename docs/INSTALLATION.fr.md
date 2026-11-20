@@ -292,10 +292,14 @@ C'est fini.
 3. Bol vide, couvercle fermé, **main près de l'interrupteur** :
    - Cuisson manuelle : 10 s, vitesse 2 → le moteur tourne puis s'arrête seul.
    - Ouvrir le couvercle pendant un essai → arrêt immédiat, « Pause : couvercle ouvert ».
-   - 30 s à 37 °C, vitesse 1 → la température affichée monte.
+   - 30 s à 37 °C, vitesse 1 → une température apparaît en haut et monte (à froid, la base n'en
+     donne pas et Toque n'affiche rien plutôt que 0 °C).
    - Balance : poser un objet de poids connu, Tare.
-   - Diagnostic de la base moteur : retirer le bol et regarder « Bol détecté ». S'il change bien, vous pouvez
-     activer Réglages › Sécurité › « Exiger la détection du bol ».
+   - Retirer le bol : la barre du haut doit afficher **« Bol retiré »**, et le Diagnostic de la base
+     moteur « Bol détecté : non » (et « oui » bol remis, couvercle ouvert ou fermé). Si c'est le
+     cas, vous pouvez activer Réglages › Sécurité › « Exiger la détection du bol ». Vérifié sur un
+     SKMC 1200 dont la base annonce la version 4922 ; sur une autre base, regardez avant de vous y
+     fier.
 4. Au moindre comportement anormal : **interrupteur**, puis revenez à l'appli d'origine
    ([partie 6](#6-revenir-en-arrière)).
 

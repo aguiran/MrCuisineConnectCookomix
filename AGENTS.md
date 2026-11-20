@@ -40,7 +40,9 @@ if download mode does not work from the Mac, see
 person this before starting. These install runs were done by the upstream projects (Wuki60 for
 Windows, flexbox for macOS); this fork only changes where the scripts download Toque from. Its
 Toque (with Cookomix) was installed with these scripts from a Mac on a third robot (SKMC 1200) on
-18 November 2026 and runs on it since.
+18 November 2026 and runs on it since. On 20 November 2026 the `install` step was run again on
+that robot with version 0.7.5: after a full power-off start, the boot script's log showed that
+Magisk had dropped Toque's grant and that the script had restored it.
 
 ## Rules for the agent
 
@@ -224,6 +226,8 @@ and without macFUSE the FUSE package stops mtkclient from starting
   Error codes CKX-01 to CKX-10: [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md).
 - Recipes: Settings › Lidl recipes › Sync (monsieur-cuisine.com, no account). Nightly re-sync.
 - Clock: set automatically (time zone from the Internet connection); Settings › Date and time.
+- Screen sleep: Settings › Screen sleep (delay; time and date, or a photo frame showing a Google
+  Photos album shared by link, read online and never saved).
 - To work on the robot later over Wi-Fi (if `wifi` was run): `adb connect <robot IP>:5555`. To
   turn ADB over Wi-Fi off: `adb shell su -c "setprop persist.adb.tcp.port ''"`, then restart.
 - Clock showing `--:--`: the robot has not reached the Internet since it started (check the Wi-Fi).

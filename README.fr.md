@@ -125,6 +125,8 @@ l'écran du robot.
   fiche charge les commentaires des utilisateurs (avec les réponses de Monsieur Cuisine).
 - **Recherche qui marche** : insensible aux accents, aux pluriels et aux fautes de frappe
   (« bechamle », « risoto »). Recherche par ingrédients (« poulet, curry »), filtres, favoris.
+  L'index de recherche est enregistré : les 4 000 recettes sont là une à deux secondes après le
+  démarrage, et un favori apparaît tout de suite.
 - **Cuisine pas à pas** : chaque étape se lance d'un appui, l'étape suivante s'affiche toute
   seule, pesée intégrée, reprise après coupure. Les réglages qui se suivent sans geste à faire
   entre eux (rinçage, mixages en plusieurs vitesses…) partent ensemble d'un seul appui : la lame
@@ -143,6 +145,9 @@ l'écran du robot.
   Toute personne qui a le lien peut voir l'album, et Google ne documente pas la page que lit
   Toque : si elle change, la veille revient à l'heure. Jamais pendant un programme, une alerte ou
   une synchro de recettes.
+- **Une barre d'état qui dit ce que voit la base** : couvercle ouvert ou **bol retiré**,
+  température du bol dès que la base en mesure une (elle n'en donne pas à froid), liaison avec la
+  base ; grands boutons Retour et Accueil.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton
   **« Retour à Toque »** reste affiché par-dessus l'appli d'origine quand on l'ouvre.
 - **Mises à jour depuis GitHub** : Réglages › Mises à jour vérifie les
@@ -176,6 +181,7 @@ core/   Logique pure Kotlin, testée sans Android
         protocol/  trames série (15 octets émis, 27 reçus, 4800 bauds)
         machine/   règles de sécurité, contrôleur, boucle 100 ms, liaisons (série root, TCP, démo)
         recipes/   modèle, import de la base d'origine, recherche, conversion Cookomix → MCC (Cookomix.kt)
+        photos/    lecture d'un album Google Photos partagé par lien (cadre photo)
 app/    Appli Android (minSdk 23), sans AndroidX
         machine/   service de pilotage (processus « :machine ») et IPC
         recipes/   catalogue local, synchros Lidl et Cookomix
@@ -215,8 +221,11 @@ numéro de version comme erreur. Le JDK d'Android Studio convient :
    recette et dérouler la cuisson guidée contre la base simulée (ou le jumeau).
 4. **Tests automatiques** (sur le PC, sans Android) : `./gradlew :core:test`. Ils couvrent la
    conversion Thermomix → MCC (page d'essai inventée, fouet, turbo, demi-vitesses, pétrissage,
-   Varoma), les pages illisibles et les coupe-circuits (codes CKX), et les traductions. Avec le
-   jumeau lancé (point 2), deux tests de plus s'exécutent au lieu d'être ignorés :
+   Varoma), les pages illisibles et les coupe-circuits (codes CKX), l'index de recherche
+   enregistré, la lecture d'un album partagé, le capteur du bol (trames relevées sur un vrai
+   robot), et les traductions. Les scripts d'installation ont leurs propres tests :
+   `bash tools/setup/tests/root-permissions.sh` et `bash tools/setup/tests/root-boot-grant.sh`.
+   Avec le jumeau lancé (point 2), deux tests de plus s'exécutent au lieu d'être ignorés :
    `TwinIntegrationTest` (protocole) et `CookomixTwinTest`, qui envoie chaque réglage converti
    d'une recette Cookomix au jumeau, vérifie qu'il arrive tel quel à la base, et que les réglages
    hors limites du MCC (vitesse en chauffe, sens inverse, fouet, Turbo avec le fouet ou à chaud)
@@ -225,7 +234,12 @@ numéro de version comme erreur. Le JDK d'Android Studio convient :
 **État des essais** : la version Cookomix a tourné sur un téléphone Pixel en mode Démo (synchro
 complète, cuisson guidée contre la base simulée), ses réglages passent les tests avec le jumeau, et
 le convertisseur a été passé sur les 2 437 recettes du site. Depuis le 18 novembre 2026, elle
-tourne aussi sur un vrai robot (SKMC 1200).
+tourne aussi sur un vrai robot (SKMC 1200). Le 20 novembre 2026, la version 0.7.5 a été vérifiée
+sur ce robot : root conservé après un démarrage à froid (Magisk avait effacé l'autorisation, le
+script de démarrage l'a rétablie), horloge restaurée puis réglée par le réseau, liste des recettes
+prête en moins de 2 s, capteur du bol mesuré dans ses trois positions, cadre photo affichant un
+album partagé. Pas vérifié sur un robot : ce que fait le cadre photo d'un album qui contient une
+vidéo.
 
 ## Ajouter une langue
 
