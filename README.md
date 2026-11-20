@@ -43,8 +43,10 @@ Taken on a robot (SKMC 1200, 1024 × 600 screen), interface in French; it also e
 | Home | Manual cooking (dials) |
 |---|---|
 | ![Home screen](docs/images/accueil.png) | ![Manual cooking](docs/images/manuel.png) |
-| **Categories** | **Settings** |
-| ![Categories](docs/images/categories.png) | ![Settings](docs/images/reglages.png) |
+| **Recipes (Cookomix tab)** | **Categories (Cookomix tab)** |
+| ![Recipes](docs/images/recettes.jpg) | ![Categories](docs/images/categories.png) |
+| **Settings (the whole page)** | **Photo frame while the screen sleeps** |
+| ![Settings](docs/images/reglages.png) | ![Photo frame](docs/images/cadre-photo.jpg) |
 | **Help on features** | |
 | ![Help page](docs/images/aide.png) | |
 

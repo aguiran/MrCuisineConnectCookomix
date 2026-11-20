@@ -39,8 +39,10 @@ Prises sur un robot (SKMC 1200, écran de 1024 × 600).
 | Accueil | Cuisson manuelle (molettes) |
 |---|---|
 | ![Écran d'accueil](docs/images/accueil.png) | ![Cuisson manuelle](docs/images/manuel.png) |
-| **Catégories** | **Réglages** |
-| ![Catégories](docs/images/categories.png) | ![Réglages](docs/images/reglages.png) |
+| **Recettes (onglet Cookomix)** | **Catégories (onglet Cookomix)** |
+| ![Recettes](docs/images/recettes.jpg) | ![Catégories](docs/images/categories.png) |
+| **Réglages (la page entière)** | **Cadre photo pendant la veille** |
+| ![Réglages](docs/images/reglages.png) | ![Cadre photo](docs/images/cadre-photo.jpg) |
 | **Aide sur les fonctionnalités** | |
 | ![Page d'aide](docs/images/aide.png) | |
 
