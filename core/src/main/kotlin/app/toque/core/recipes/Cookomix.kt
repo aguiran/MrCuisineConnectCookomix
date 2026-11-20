@@ -591,13 +591,13 @@ object Cookomix {
     private fun tmSummary(seconds: Int, temp: String, speed: String, reverse: Boolean): String = buildList {
         add(duration(seconds))
         when {
-            temp == "varoma" -> add("vapeur")
+            temp == "varoma" -> add(tr("vapeur"))
             temp.isNotEmpty() && temp != "0" -> add("$temp °C")
         }
-        if (reverse) add("sens inverse")
+        if (reverse) add(tr("sens inverse"))
         add(when {
-            speed == "0" -> "vitesse cuillère"
-            speed.toDoubleOrNull() != null -> "vitesse ${speed.replace('.', ',')}"
+            speed == "0" -> tr("vitesse cuillère")
+            speed.toDoubleOrNull() != null -> tr("vitesse %s", speed.replace('.', ','))
             else -> speed
         })
     }.joinToString(" / ")
