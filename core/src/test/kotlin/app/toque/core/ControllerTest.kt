@@ -366,14 +366,31 @@ class ControllerTest {
         assertEquals(Mcc.TX_SIZE, frame.size)
     }
 
+    /** Trames relevées sur un vrai SKMC 1200 (base 4922), à froid, dans les trois positions du bol. */
     @Test fun bowlRemovedIsToldApartFromLidOpen() {
-        val open = app.toque.core.machine.Snapshot(hasSample = true, lidOpen = true, bowlDetected = true, actualTempC = 22)
+        fun frame(hex: String) = Mcc.decodeRx(Mcc.parseHex(hex))
+        val closed = frame("55 1B B1 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 13 3A 02 00 00 74 AA")
+        val lidOpen = frame("55 1B B1 84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 13 3A 02 00 00 F9 AA")
+        val noBowl = frame("55 1B B1 C4 00 00 00 00 00 00 00 00 00 00 00 00 FF FF F7 77 13 3A 02 00 00 A0 AA")
+        assertEquals(listOf(false, true, true), listOf(closed, lidOpen, noBowl).map { it.lidOpen })
+        assertEquals(listOf(false, false, true), listOf(closed, lidOpen, noBowl).map { it.bowlMissing })
+        assertEquals(-2185, noBowl.weight)
+
+        val open = app.toque.core.machine.Snapshot(hasSample = true, lidOpen = true, bowlDetected = true)
         assertFalse(open.bowlRemoved)
-        assertTrue(open.copy(bowlDetected = false, actualTempC = 0).bowlRemoved)
-        // Un seul indice ne suffit pas (détection du bol douteuse, ou bol de glace à 0 °C).
-        assertFalse(open.copy(bowlDetected = false).bowlRemoved)
-        assertFalse(open.copy(actualTempC = 0).bowlRemoved)
-        assertFalse(open.copy(lidOpen = false, bowlDetected = false, actualTempC = 0).bowlRemoved)
-        assertFalse(open.copy(hasSample = false, bowlDetected = false, actualTempC = 0).bowlRemoved)
+        assertTrue(open.copy(bowlDetected = false).bowlRemoved)
+        assertFalse(open.copy(hasSample = false, bowlDetected = false).bowlRemoved)
+    }
+
+    @Test fun requiringTheBowlRefusesWithoutIt() {
+        val b = Bench(ControllerConfig(requireBowl = true)).ready()
+        assertTrue(b.snap.bowlDetected)
+        assertTrue(b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 5_000)).ok)
+        b.c.stop()
+        b.step(2_000)
+        b.board.bowlPresent = false
+        b.step(200)
+        assertFalse(b.snap.bowlDetected)
+        assertTrue(b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 5_000)).has("bowl"))
     }
 }

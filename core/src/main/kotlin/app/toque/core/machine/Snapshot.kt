@@ -4,13 +4,6 @@ package app.toque.core.machine
  * État complet et immuable de la machine, envoyé à l'interface ~10 fois par seconde.
  * [toMap]/[fromMap] servent au passage entre processus (Bundle Android).
  */
-/**
- * Bol retiré, et pas seulement couvercle ouvert : la base signale « couvercle ouvert » dans les deux
- * cas. Sans bol, sa sonde de température n'est plus vue (non détectée, 0 °C). Les deux indices sont
- * exigés : si l'un manque, on s'en tient à « couvercle ouvert ».
- */
-fun bowlRemoved(lidOpen: Boolean, bowlDetected: Boolean, tempC: Int): Boolean = lidOpen && !bowlDetected && tempC == 0
-
 data class Snapshot(
     val link: LinkState = LinkState.OFFLINE,
     val transportName: String = "",
@@ -67,7 +60,8 @@ data class Snapshot(
     val busy: Boolean get() = running || state == JobState.PAUSED || turboActive
     val hot: Boolean get() = hasSample && actualTempC >= Limits.HOT_C
 
-    val bowlRemoved: Boolean get() = hasSample && bowlRemoved(lidOpen, bowlDetected, actualTempC)
+    /** Bol retiré, et pas seulement couvercle ouvert : la base signale « couvercle ouvert » dans les deux cas. */
+    val bowlRemoved: Boolean get() = hasSample && lidOpen && !bowlDetected
 
     fun toMap(): Map<String, Any> = linkedMapOf(
         "link" to link.name, "transportName" to transportName, "transportUp" to transportUp,
