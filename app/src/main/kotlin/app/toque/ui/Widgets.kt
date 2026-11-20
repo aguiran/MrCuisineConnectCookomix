@@ -178,7 +178,7 @@ class TempRing(c: Context) : View(c) {
         text.typeface = Ui.REGULAR
         text.color = Ui.TEXT2
         text.textSize = size * 0.075f
-        val caption = if (target > 0) tr("consigne %d °C", target) else if (actual > 0) tr("mesuré") else tr("pas de mesure à froid")
+        val caption = if (target > 0) tr("consigne %d °C", target) else if (actual > 0) tr("mesuré") else ""
         canvas.drawText(caption, cx, cy + size * 0.22f, text)
         // barres de vitesse réelle
         val bw = size * 0.035f
@@ -335,9 +335,13 @@ class HoldButton(c: Context, label: String, private val onDown: () -> Unit, priv
         setPadding(Ui.u(22), 0, Ui.u(22), 0)
         minimumHeight = Ui.u(64)
         background = Ui.round(Ui.SURFACE3, 32f)
-        addView(Icon(c, Icon.Kind.BOLT, Ui.WARN), LayoutParams(Ui.u(26), Ui.u(26)).apply { rightMargin = Ui.u(10) })
+        // Le texte est centré dans le bouton : l'éclair à sa gauche a son pendant invisible à droite.
+        val iconWidth = Ui.u(26)
+        val gap = Ui.u(16)
+        addView(Icon(c, Icon.Kind.BOLT, Ui.WARN), LayoutParams(iconWidth, iconWidth).apply { rightMargin = gap })
         text = Ui.text(c, label, 20f, Ui.TEXT, Ui.MEDIUM)
         addView(text)
+        addView(View(c), LayoutParams(iconWidth + gap, 1))
         isClickable = true
     }
 
