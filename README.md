@@ -44,9 +44,9 @@ Taken on a robot (SKMC 1200, 1024 × 600 screen), interface in French; it also e
 |---|---|
 | ![Home screen](docs/images/accueil.png) | ![Manual cooking](docs/images/manuel.png) |
 | **Recipes (Cookomix tab)** | **Categories (Cookomix tab)** |
-| ![Recipes](docs/images/recettes.jpg) | ![Categories](docs/images/categories.png) |
+| ![Recipes](docs/images/recettes.jpg) | ![Categories](docs/images/categories-cookomix.png) |
 | **Settings (the whole page)** | **Photo frame while the screen sleeps** |
-| ![Settings](docs/images/reglages.png) | ![Photo frame](docs/images/cadre-photo.jpg) |
+| ![Settings](docs/images/reglages-page.png) | ![Photo frame](docs/images/cadre-photo.jpg) |
 | **Help on features** | |
 | ![Help page](docs/images/aide.png) | |
 
