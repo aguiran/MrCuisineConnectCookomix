@@ -136,7 +136,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         photoBox.addView(dropdown(seconds, a.prefs.photoSeconds.toString()) { a.prefs.photoSeconds = it.toInt() }, Ui.lp(Ui.MATCH, Ui.u(58), t = 14))
         val brightness = listOf(5, 10, 20, 40, 60, 80, 100).map { it.toString() to tr("Luminosité des photos : %d %%", it) }
         photoBox.addView(dropdown(brightness, a.prefs.photoBrightness.toString()) { a.prefs.photoBrightness = it.toInt() }, Ui.lp(Ui.MATCH, Ui.u(58), t = 8))
-        photoBox.addView(note(tr("Pendant le diaporama, un premier toucher met l'écran en pleine lumière, un second le réveille. Sans réseau, la veille affiche l'heure.")),
+        photoBox.addView(note(tr("Pendant le diaporama, le bouton rotatif passe à la photo suivante ou précédente ; un premier toucher met l'écran en pleine lumière, un second le réveille. Sans réseau, la veille affiche l'heure.")),
             Ui.lp(t = 6))
         photoBox.addView(Ui.button(c, tr("Lancer le diaporama"), Ui.Style.PRIMARY, Icon.Kind.PLAY, height = 58) { startPhotos() },
             Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))

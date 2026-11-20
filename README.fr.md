@@ -140,7 +140,8 @@ l'écran du robot.
 - **Mise en veille de l'écran** : après 5, 10 ou 30 minutes sans contact, écran noir avec l'heure
   et la date, luminosité au minimum, ou **cadre photo** : les photos d'un album Google Photos
   partagé par lien, dans un ordre mélangé, avec un fondu entre elles (Réglages › Écran de veille :
-  le lien de l'album, 10 à 60 secondes par photo, sa propre luminosité). Les photos sont lues en
+  le lien de l'album, 10 à 60 secondes par photo, sa propre luminosité) ; le bouton rotatif passe à
+  la photo suivante ou précédente. Les photos sont lues en
   ligne à la taille de l'écran et jamais enregistrées sur le robot ; les vidéos sont écartées.
   Toute personne qui a le lien peut voir l'album, et Google ne documente pas la page que lit
   Toque : si elle change, la veille revient à l'heure. Jamais pendant un programme, une alerte ou
