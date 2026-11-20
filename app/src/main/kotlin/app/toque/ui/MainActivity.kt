@@ -244,7 +244,30 @@ class MainActivity : Activity() {
         if (!standby.startPhotos()) toast(tr("Pas de diaporama pendant un programme, une alerte ou une synchro."), Ui.WARN)
     }
 
+    /** Touche du bouton rotatif : -1 ou +1 pour un cran à gauche ou à droite, 0 pour un appui ; null sinon. */
+    private fun knobKey(k: Int): Int? = when {
+        prefs.knobLeft.let { if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_LEFT } -> -1
+        prefs.knobRight.let { if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_RIGHT } -> 1
+        prefs.knobPress.let { if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER } -> 0
+        else -> null
+    }
+
+    /** Cran du bouton rotatif reçu comme défilement (AXIS_SCROLL, ou AXIS_VSCROLL d'une molette) : -1, +1, ou 0 s'il est à ignorer. */
+    private fun knobScroll(event: MotionEvent): Int {
+        val v = event.getAxisValue(AXIS_SCROLL).let { if (it == 0f) -event.getAxisValue(MotionEvent.AXIS_VSCROLL) else it }
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (v == 0f || now - lastKnobMs <= 40) return 0
+        lastKnobMs = now
+        return if (v > 0) 1 else -1
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val knob = knobKey(event.keyCode)
+        // Cadre photo : tourner le bouton fait défiler les photos au lieu de réveiller l'écran.
+        if (standby.showingPhotos && knob != null && knob != 0) {
+            if (event.action == KeyEvent.ACTION_DOWN) standby.turnPhotos(knob)
+            return true
+        }
         if (knobWakes()) return true
         standby.touched()
         knobListener?.let { l ->
@@ -252,33 +275,24 @@ class MainActivity : Activity() {
             return true
         }
         if (event.action == KeyEvent.ACTION_DOWN && overlay.visibility != View.VISIBLE) {
-            val k = event.keyCode
-            val left = prefs.knobLeft.let { if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_LEFT }
-            val right = prefs.knobRight.let { if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_RIGHT }
-            val press = prefs.knobPress.let {
-                if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER
-            }
             val s = current
-            if (s != null && currentFocus !is android.widget.EditText) {
-                if (left && s.onKnob(-1)) return true
-                if (right && s.onKnob(1)) return true
-                if (press && s.onKnobPress()) return true
+            if (s != null && knob != null && currentFocus !is android.widget.EditText) {
+                if (if (knob == 0) s.onKnobPress() else s.onKnob(knob)) return true
             }
         }
         return super.dispatchKeyEvent(event)
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_SCROLL && standby.showingPhotos) {
+            knobScroll(event).let { if (it != 0) standby.turnPhotos(it) }
+            return true
+        }
         if (event.action == MotionEvent.ACTION_SCROLL && knobWakes()) return true
         standby.touched()
         if (event.action == MotionEvent.ACTION_SCROLL) {
-            // Encodeur rotatif (AXIS_SCROLL) ou molette (AXIS_VSCROLL)
-            val v = event.getAxisValue(AXIS_SCROLL).let { if (it == 0f) -event.getAxisValue(MotionEvent.AXIS_VSCROLL) else it }
-            val now = android.os.SystemClock.elapsedRealtime()
-            if (v != 0f && now - lastKnobMs > 40) {
-                lastKnobMs = now
-                if (current?.onKnob(if (v > 0) 1 else -1) == true) return true
-            }
+            val step = knobScroll(event)
+            if (step != 0 && current?.onKnob(step) == true) return true
         }
         return super.dispatchGenericMotionEvent(event)
     }
