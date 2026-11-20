@@ -288,10 +288,13 @@ on**. Done.
 3. Empty bowl, lid closed, **hand near the power switch**:
    - Manual cooking: 10 s, speed 2 → the motor turns, then stops by itself.
    - Open the lid during a test → immediate stop, "Paused: lid open".
-   - 30 s at 37 °C, speed 1 → the displayed temperature rises.
+   - 30 s at 37 °C, speed 1 → a temperature appears at the top and rises (cold, the base gives
+     none and Toque shows nothing rather than 0 °C).
    - Scale: put an object of known weight on it, Tare.
-   - Diagnostics: take the bowl off and watch "Bowl detected". If it changes correctly, you can
-     turn on Settings › Safety › "Require bowl detection".
+   - Take the bowl off: the top bar must say **"Bowl removed"**, and Diagnostics "Bowl detected:
+     no" (and "yes" with the bowl back, lid open or closed). If so, you can turn on
+     Settings › Safety › "Require bowl detection". Checked on an SKMC 1200 whose base reports
+     version 4922; on another base, look before trusting it.
 4. At the slightest odd behaviour: **power switch**, then go back to the stock app
    ([part 6](#6-undo)).
 

@@ -120,7 +120,8 @@ screen.
 - **Author, ratings and reviews**: each recipe shows who published it and its rating on the site,
   and the recipe page loads the users' comments (with Monsieur Cuisine's replies).
 - **Search that works**: ignores accents, plurals and typos ("bechamle", "risoto").
-  Search by ingredients (e.g. "chicken, curry"), filters, favorites.
+  Search by ingredients (e.g. "chicken, curry"), filters, favorites. The search index is saved:
+  the 4,000 recipes are there a second or two after start-up, and a favourite shows up at once.
 - **Guided cooking**: each step starts with one tap, the next step shows up by itself, built-in
   weighing, resume after a power cut. Settings that follow each other with nothing to do in
   between (rinsing, blending at several speeds…) start together with a single tap: the blade goes
@@ -137,6 +138,9 @@ screen.
   saved on the robot; videos are skipped. Anyone who has the link can see the album, and Google
   does not document the page Toque reads: if it changes, the sleeping screen goes back to the time.
   Never during a program, an alert or a recipe sync.
+- **A status bar that says what the base sees**: lid open or **bowl removed**, the bowl's
+  temperature once the base measures one (it gives none when cold), the link to the base; large
+  Back and Home buttons.
 - **Made for a robot without Android buttons**: Toque opens at startup, and a **Back to Toque**
   button stays on top of the stock app when you open it.
 - **Updates from GitHub**: *Settings › Updates* checks this repository's
@@ -169,6 +173,7 @@ core/   Pure Kotlin logic, tested without Android
         protocol/  serial frames (15 bytes sent, 27 received, 4800 baud)
         machine/   safety rules, controller, 100 ms loop, links (root serial, TCP, demo)
         recipes/   model, stock database import, search, Cookomix → MCC conversion (Cookomix.kt)
+        photos/    reader of a Google Photos album shared by link (photo frame)
 app/    Android app (minSdk 23), no AndroidX
         machine/   motor control service (":machine" process) and IPC
         recipes/   local catalogue, Lidl and Cookomix syncs
@@ -207,7 +212,10 @@ Android Studio's JDK works:
    guided cooking against the simulated base (or the twin).
 4. **Automated tests** (on the PC, no Android): `./gradlew :core:test`. They cover the Thermomix →
    MCC conversion (made-up test page, whisk, turbo, half speeds, kneading, Varoma), unreadable pages
-   and circuit breakers (CKX codes), and translations. With the twin running (point 2), two more
+   and circuit breakers (CKX codes), the saved search index, the shared-album reader, the bowl
+   sensor (frames recorded on a real robot), and translations. The install scripts have their own
+   tests: `bash tools/setup/tests/root-permissions.sh` and `bash tools/setup/tests/root-boot-grant.sh`.
+   With the twin running (point 2), two more
    tests run instead of being skipped: `TwinIntegrationTest` (protocol) and `CookomixTwinTest`,
    which sends every converted setting of a Cookomix recipe to the twin, checks it reaches the
    base unchanged, and that settings beyond the MCC's limits (heated speed, reverse, whisk, Turbo
@@ -217,7 +225,11 @@ Android Studio's JDK works:
 **What has been tried**: the Cookomix version has run on a Pixel phone in Demo mode (full sync,
 guided cooking against the simulated base), its settings pass the twin tests, and the converter has
 been run on all 2,437 recipes of the site. Since 18 November 2026 it also runs on one real robot
-(SKMC 1200).
+(SKMC 1200). On 20 November 2026, version 0.7.5 was checked on that robot: root kept across a full
+power-off start (Magisk had dropped the grant, the boot script restored it), clock restored then
+set from the network, recipe list ready in under 2 s, bowl sensor measured in its three positions,
+photo frame showing a shared album. Not checked on a robot: what the photo frame does with an
+album that contains a video.
 
 ## Add a language
 

@@ -16,7 +16,9 @@ jour*) et que le script d'installation télécharge. On ne pousse jamais directe
    ```
    ./gradlew :core:test :app:assembleDebug
    ```
-   (JDK 17 ou 21.) Si le changement touche le pilotage ou la conversion Cookomix, lancer aussi
+   (JDK 17 ou 21.) Si le changement touche les scripts d'installation, lancer aussi
+   `bash tools/setup/tests/root-permissions.sh` et `bash tools/setup/tests/root-boot-grant.sh` (la
+   CI les lance dans tous les cas). Si le changement touche le pilotage ou la conversion Cookomix, lancer aussi
    `python3 tools/twin.py --sdk <dossier du SDK>` dans un autre terminal : `TwinIntegrationTest` et
    `CookomixTwinTest` tournent alors au lieu d'être ignorés.
 3. Pousser la branche et ouvrir une pull request **vers `main` de ce dépôt** (et non vers le dépôt
