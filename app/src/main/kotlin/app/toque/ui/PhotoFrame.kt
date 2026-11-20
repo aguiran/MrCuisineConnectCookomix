@@ -23,7 +23,8 @@ import java.util.concurrent.Executors
  * Cadre photo de la veille : fait défiler, dans un ordre mélangé, les photos d'un album Google
  * Photos partagé par lien. Chaque photo est lue en ligne à la taille de l'écran au moment de
  * l'afficher ; rien n'est enregistré sur le robot. La suivante est chargée pendant que la
- * précédente est à l'écran, puis remplace celle-ci par un fondu.
+ * précédente est à l'écran, puis remplace celle-ci par un fondu. Le bouton rotatif fait passer à
+ * la photo suivante ou revenir à la précédente.
  */
 class PhotoFrame(private val activity: Activity, private val prefs: Prefs, private val log: Logbook) {
     private val main = Handler(Looper.getMainLooper())
@@ -56,32 +57,36 @@ class PhotoFrame(private val activity: Activity, private val prefs: Prefs, priva
     /** Change à chaque [start] et [stop] : un chargement lancé avant n'affiche plus rien. */
     private var session = 0
     private var order: List<SharedAlbum.Photo> = emptyList()
-    private var position = 0
-    /** Photo suivante déjà chargée, en attente de son tour. */
+    /** Rang, dans [order], de la photo affichée (-1 : aucune encore). */
+    private var shown = -1
+    /** Numéro du dernier chargement lancé : le résultat d'un chargement plus ancien est jeté. */
+    private var loading = 0
+    /** Photo suivante déjà chargée, en attente de son tour, et son rang. */
     private var ready: Bitmap? = null
-    /** La photo affichée a fait son temps : la suivante s'affiche dès qu'elle est chargée. */
+    private var readyIndex = -1
+    /** La photo affichée a fait son temps : celle en cours de chargement s'affiche dès qu'elle arrive. */
     private var due = true
+    /** Fondu de la prochaine photo affichée (court quand on fait défiler à la main). */
+    private var fadeMs = FADE_MS
     private var failures = 0
     /** Pas de nouvelle lecture de la liste des photos avant cet instant (après un échec). */
     private var relistAfter = 0L
 
-    private val turn = Runnable {
-        val next = ready
-        if (next != null) show(next) else due = true
-    }
+    private val turn = Runnable { advance(FADE_MS) }
 
     private fun image() = ImageView(activity).apply { scaleType = ImageView.ScaleType.FIT_CENTER }
 
     fun start() {
         session++
         due = true
+        fadeMs = FADE_MS
         failures = 0
         relistAfter = 0L
         refreshClock()
         list()
     }
 
-    /** Lit la liste des photos puis charge la suivante ; en cas d'échec, continue avec la liste déjà connue. */
+    /** Lit la liste des photos puis charge la première ; en cas d'échec, continue avec la liste déjà connue. */
     private fun list() {
         val current = session
         val code = prefs.photoAlbum
@@ -96,12 +101,12 @@ class PhotoFrame(private val activity: Activity, private val prefs: Prefs, priva
                 if (current != session) return@post
                 if (album != null) {
                     order = album.photos.shuffled()
-                    position = 0
+                    shown = -1
                 } else {
                     relistAfter = SystemClock.elapsedRealtime() + RELIST_RETRY_MS
                     if (order.isEmpty()) return@post onUnavailable()
                 }
-                loadNext()
+                load(shown + 1)
             }
         }
     }
@@ -117,6 +122,32 @@ class PhotoFrame(private val activity: Activity, private val prefs: Prefs, priva
         ready?.recycle()
         ready = null
         order = emptyList()
+        shown = -1
+    }
+
+    /** Photo suivante tout de suite (bouton rotatif), sans attendre la fin de son temps d'affichage. */
+    fun next() {
+        if (order.isEmpty()) return
+        main.removeCallbacks(turn)
+        advance(QUICK_FADE_MS)
+    }
+
+    /** Retour à la photo précédente (bouton rotatif). */
+    fun previous() {
+        if (order.isEmpty() || shown < 0) return
+        main.removeCallbacks(turn)
+        ready?.recycle()
+        ready = null
+        due = true
+        fadeMs = QUICK_FADE_MS
+        load(shown - 1)
+    }
+
+    /** Affiche la photo suivante si elle est chargée, sinon dès qu'elle le sera. */
+    private fun advance(fade: Long) {
+        fadeMs = fade
+        val next = ready
+        if (next != null) show(readyIndex, next) else due = true
     }
 
     fun showHint(on: Boolean) {
@@ -129,19 +160,15 @@ class PhotoFrame(private val activity: Activity, private val prefs: Prefs, priva
         clock.text = if (now.startsWith("-")) "" else now
     }
 
-    private fun loadNext() {
+    /** Charge la photo de rang [index] (l'album se parcourt en boucle, dans les deux sens). */
+    private fun load(index: Int) {
         if (order.isEmpty()) return
         val current = session
-        val now = SystemClock.elapsedRealtime()
-        if (albumAge() > ALBUM_MAX_AGE_MS && now >= relistAfter) return list()
-        if (position >= order.size) {
-            // Tour de l'album terminé : nouvel ordre.
-            order = order.shuffled()
-            position = 0
-        }
-        val photo = order[position++]
+        if (albumAge() > ALBUM_MAX_AGE_MS && SystemClock.elapsedRealtime() >= relistAfter) return list()
+        val at = ((index % order.size) + order.size) % order.size
+        val id = ++loading
         val dm = activity.resources.displayMetrics
-        val url = photo.sized(dm.widthPixels, dm.heightPixels)
+        val url = order[at].sized(dm.widthPixels, dm.heightPixels)
         loader.execute {
             val bitmap = try {
                 val bytes = Http.bytes(url, timeoutMs = 20_000, maxBytes = MAX_PHOTO_BYTES)
@@ -152,44 +179,50 @@ class PhotoFrame(private val activity: Activity, private val prefs: Prefs, priva
                 null
             }
             main.post {
-                if (current != session) {
+                if (current != session || id != loading) {
                     bitmap?.recycle()
                     return@post
                 }
-                if (bitmap == null) failed(current) else loaded(bitmap)
+                if (bitmap == null) failed(at) else loaded(at, bitmap)
             }
         }
     }
 
-    private fun loaded(bitmap: Bitmap) {
+    private fun loaded(index: Int, bitmap: Bitmap) {
         failures = 0
-        if (due) show(bitmap) else ready = bitmap
+        if (due) show(index, bitmap) else {
+            ready = bitmap
+            readyIndex = index
+        }
     }
 
     /** Photo illisible : on passe à la suivante ; plusieurs de suite, le réseau ou l'album a un problème. */
-    private fun failed(current: Int) {
+    private fun failed(index: Int) {
+        val current = session
+        val id = loading
         if (++failures >= MAX_FAILURES) {
             log.write("photos", "photos illisibles $MAX_FAILURES fois de suite")
             forget()
             onUnavailable()
-        } else main.postDelayed({ if (current == session) loadNext() }, RETRY_MS)
+        } else main.postDelayed({ if (current == session && id == loading) load(index + 1) }, RETRY_MS)
     }
 
     /** Fondu de la photo affichée vers [bitmap], puis chargement de la suivante. */
-    private fun show(bitmap: Bitmap) {
+    private fun show(index: Int, bitmap: Bitmap) {
         ready = null
         due = false
+        shown = index
         release(back)
         back.setImageDrawable(front.drawable)
         back.alpha = 1f
         front.alpha = 0f
         front.setImageBitmap(bitmap)
-        front.animate().alpha(1f).setDuration(FADE_MS).withEndAction { release(back) }.start()
-        back.animate().alpha(0f).setDuration(FADE_MS).start()
+        front.animate().alpha(1f).setDuration(fadeMs).withEndAction { release(back) }.start()
+        back.animate().alpha(0f).setDuration(fadeMs).start()
         refreshClock()
         main.removeCallbacks(turn)
         main.postDelayed(turn, prefs.photoSeconds.coerceIn(10, 60) * 1000L)
-        loadNext()
+        load(index + 1)
     }
 
     /** Libère la photo d'une vue, sauf si l'autre vue l'affiche encore (le temps du fondu). */
@@ -206,6 +239,7 @@ class PhotoFrame(private val activity: Activity, private val prefs: Prefs, priva
             Thread(r, "toque-photos").apply { priority = Thread.MIN_PRIORITY; isDaemon = true }
         }
         private const val FADE_MS = 1_200L
+        private const val QUICK_FADE_MS = 250L
         private const val RETRY_MS = 15_000L
         private const val RELIST_RETRY_MS = 10 * 60_000L
         private const val MAX_FAILURES = 3

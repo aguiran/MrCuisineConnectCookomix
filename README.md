@@ -134,7 +134,7 @@ screen.
 - **Screen sleep**: after 5, 10 or 30 minutes without a touch, a black screen with the time and
   date at minimum brightness, or a **photo frame**: the photos of a Google Photos album shared by
   link, in shuffled order, with a fade between them (*Settings › Screen sleep*: the album's link, 10
-  to 60 seconds per photo, its own brightness). Photos are read online at screen size and never
+  to 60 seconds per photo, its own brightness); the rotary knob goes to the next or previous photo. Photos are read online at screen size and never
   saved on the robot; videos are skipped. Anyone who has the link can see the album, and Google
   does not document the page Toque reads: if it changes, the sleeping screen goes back to the time.
   Never during a program, an alert or a recipe sync.

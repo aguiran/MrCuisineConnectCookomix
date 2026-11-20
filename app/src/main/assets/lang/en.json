@@ -294,7 +294,7 @@
   "Pause : couvercle ouvert": "Paused: lid open",
   "Pause trop longue : programme annulé": "Paused too long: program cancelled",
   "Pendant la veille": "While asleep",
-  "Pendant le diaporama, un premier toucher met l'écran en pleine lumière, un second le réveille. Sans réseau, la veille affiche l'heure.": "During the slideshow, a first touch brings the screen to full brightness and a second one wakes it. Without a network, the sleeping screen shows the time.",
+  "Pendant le diaporama, le bouton rotatif passe à la photo suivante ou précédente ; un premier toucher met l'écran en pleine lumière, un second le réveille. Sans réseau, la veille affiche l'heure.": "During the slideshow, the rotary knob goes to the next or previous photo; a first touch brings the screen to full brightness and a second one wakes it. Without a network, the sleeping screen shows the time.",
   "Peser %d g": "Weigh %d g",
   "Peser au gramme": "Weigh to the gram",
   "Pesez %d g": "Weigh %d g",

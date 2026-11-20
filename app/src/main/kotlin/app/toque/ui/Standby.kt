@@ -27,7 +27,8 @@ import app.toque.recipes.OnlineSync
  *
  * En option, la veille fait défiler les photos d'un album ([PhotoFrame]) à la place de l'heure, à
  * une luminosité choisie. Un premier geste remet alors l'écran en pleine lumière pour regarder la
- * photo, un second réveille. Sans réseau ou si l'album est illisible, la veille affiche l'heure.
+ * photo, un second réveille ; tourner le bouton rotatif fait défiler les photos. Sans réseau ou si
+ * l'album est illisible, la veille affiche l'heure.
  */
 class Standby(private val activity: Activity, root: FrameLayout, private val prefs: Prefs, log: Logbook, private val snapshot: () -> Snapshot) {
     private val main = Handler(Looper.getMainLooper())
@@ -39,7 +40,8 @@ class Standby(private val activity: Activity, root: FrameLayout, private val pre
 
     private val photos = PhotoFrame(activity, prefs, log)
     /** Le diaporama est à l'écran (sinon : l'heure). */
-    private var showingPhotos = false
+    var showingPhotos = false
+        private set
     /** Diaporama en pleine lumière après un premier geste ; le suivant réveille. */
     private var bright = false
     private val dim = Runnable { setBright(false) }
@@ -168,6 +170,12 @@ class Standby(private val activity: Activity, root: FrameLayout, private val pre
      */
     fun interact() {
         if (sleeping && showingPhotos && !bright) setBright(true) else wake()
+    }
+
+    /** Bouton rotatif pendant le diaporama : photo suivante ([delta] > 0) ou précédente. */
+    fun turnPhotos(delta: Int) {
+        if (!showingPhotos) return
+        if (delta > 0) photos.next() else photos.previous()
     }
 
     fun wake() {
