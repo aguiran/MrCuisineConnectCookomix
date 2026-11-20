@@ -114,6 +114,34 @@ class Prefs(context: Context) {
             p.edit().putInt("screenSleepMinutes", v).commit()
         }
 
+    /** Pendant la veille : diaporama de l'album [photoAlbum] à la place de l'heure. */
+    var standbyPhotos: Boolean
+        get() = p.getBoolean("standbyPhotos", false)
+        set(v) {
+            p.edit().putBoolean("standbyPhotos", v).apply()
+        }
+
+    /** Code du lien de partage de l'album Google Photos (photos.app.goo.gl/<code>), vide si aucun. */
+    var photoAlbum: String
+        get() = p.getString("photoAlbum", "") ?: ""
+        set(v) {
+            p.edit().putString("photoAlbum", v).apply()
+        }
+
+    /** Durée d'affichage d'une photo, en secondes. */
+    var photoSeconds: Int
+        get() = p.getInt("photoSeconds", 20)
+        set(v) {
+            p.edit().putInt("photoSeconds", v).apply()
+        }
+
+    /** Luminosité de l'écran pendant le diaporama, en pour cent. */
+    var photoBrightness: Int
+        get() = p.getInt("photoBrightness", 40)
+        set(v) {
+            p.edit().putInt("photoBrightness", v).apply()
+        }
+
     var sound: Boolean
         get() = p.getBoolean("sound", true)
         set(v) {

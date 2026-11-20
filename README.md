@@ -130,6 +130,13 @@ screen.
 - **Always the right time**: the time and the time zone come from the Internet connection (the
   robot has no clock battery); the zone can be chosen by hand in *Settings › Date and time*. Until
   the network has answered after a start, the clock shows `--:--` rather than a wrong time.
+- **Screen sleep**: after 5, 10 or 30 minutes without a touch, a black screen with the time and
+  date at minimum brightness, or a **photo frame**: the photos of a Google Photos album shared by
+  link, in shuffled order, with a fade between them (*Settings › Screen sleep*: the album's link, 10
+  to 60 seconds per photo, its own brightness). Photos are read online at screen size and never
+  saved on the robot; videos are skipped. Anyone who has the link can see the album, and Google
+  does not document the page Toque reads: if it changes, the sleeping screen goes back to the time.
+  Never during a program, an alert or a recipe sync.
 - **Made for a robot without Android buttons**: Toque opens at startup, and a **Back to Toque**
   button stays on top of the stock app when you open it.
 - **Updates from GitHub**: *Settings › Updates* checks this repository's

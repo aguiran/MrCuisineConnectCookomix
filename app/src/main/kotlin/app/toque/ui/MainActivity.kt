@@ -79,7 +79,7 @@ class MainActivity : Activity() {
         overlay = FrameLayout(this)
         overlay.visibility = View.GONE
         root.addView(overlay, Ui.flp())
-        standby = Standby(this, root, { prefs.screenSleepMinutes }, { snapshot })
+        standby = Standby(this, root, prefs, app.log) { snapshot }
         setContentView(root)
 
         try {
@@ -218,7 +218,7 @@ class MainActivity : Activity() {
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
             swallowGesture = standby.sleeping
-            standby.wake()
+            standby.interact()
         }
         if (swallowGesture) return true
         return super.dispatchTouchEvent(ev)
@@ -232,10 +232,16 @@ class MainActivity : Activity() {
 
     private fun knobWakes(): Boolean {
         val now = android.os.SystemClock.elapsedRealtime()
-        if (!standby.sleeping && now >= knobWakeUntil) return false
-        standby.wake()
+        val sameGesture = now < knobWakeUntil
+        if (!standby.sleeping && !sameGesture) return false
+        if (!sameGesture) standby.interact()
         knobWakeUntil = now + KNOB_WAKE_MS
         return true
+    }
+
+    /** Diaporama de la veille lancé à la main (Réglages). */
+    fun startPhotoFrame() {
+        if (!standby.startPhotos()) toast(tr("Pas de diaporama pendant un programme, une alerte ou une synchro."), Ui.WARN)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
