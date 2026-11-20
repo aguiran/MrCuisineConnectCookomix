@@ -226,6 +226,8 @@ and without macFUSE the FUSE package stops mtkclient from starting
   Error codes CKX-01 to CKX-10: [docs/COOKOMIX-ERREURS.md](docs/COOKOMIX-ERREURS.md).
 - Recipes: Settings › Lidl recipes › Sync (monsieur-cuisine.com, no account). Nightly re-sync.
 - Clock: set automatically (time zone from the Internet connection); Settings › Date and time.
+- Help: Settings › Help on features explains every setting (the Settings page itself only shows
+  controls and states).
 - Screen sleep: Settings › Screen sleep (delay; time and date, or a photo frame showing a Google
   Photos album shared by link, read online and never saved).
 - To work on the robot later over Wi-Fi (if `wifi` was run): `adb connect <robot IP>:5555`. To

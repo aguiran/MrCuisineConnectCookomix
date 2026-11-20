@@ -94,7 +94,10 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
 
     fun setTitle(t: String, canGoBack: Boolean) {
         titleView.text = t
-        back.visibility = if (canGoBack) View.VISIBLE else View.INVISIBLE
+        // Sans bouton Retour (accueil), le titre s'aligne sur le contenu de la page.
+        back.visibility = if (canGoBack) View.VISIBLE else View.GONE
+        (titleView.layoutParams as LayoutParams).leftMargin = Ui.u(if (canGoBack) 6 else 24)
+        titleView.requestLayout()
         home.visibility = if (canGoBack) View.VISIBLE else View.GONE
     }
 

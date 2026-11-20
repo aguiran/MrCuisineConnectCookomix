@@ -97,6 +97,18 @@ une étape à la fois. Il sauvegarde d'abord le robot, le roote avec Magisk, ins
 ADB par Wi-Fi. Vous ne vous occupez que de la trappe, du câble, de l'interrupteur et d'un appui sur
 l'écran du robot.
 
+## Captures d'écran
+
+Prises sur le robot (SKMC 1200, écran de 1024 × 600).
+
+| Accueil | Cuisson manuelle (molettes) |
+|---|---|
+| ![Écran d'accueil](docs/images/accueil.png) | ![Cuisson manuelle](docs/images/manuel.png) |
+| **Catégories** | **Réglages** |
+| ![Catégories](docs/images/categories.png) | ![Réglages](docs/images/reglages.png) |
+| **Aide sur les fonctionnalités** | |
+| ![Page d'aide](docs/images/aide.png) | |
+
 ## Ce que fait Toque
 
 - **Interface sombre**, pensée pour l'écran 7" et le bouton rotatif du robot, fluide sur sa
@@ -109,7 +121,9 @@ l'écran du robot.
   et une croix pour oublier la recette commencée.
 - **Cuisson manuelle aux boutons ou aux molettes** : réglages par boutons − / + ou par molettes
   tactiles (choix « Boutons / Molettes », mémorisé), avec les mêmes limites de sécurité ; pendant
-  la cuisson, un cran par geste.
+  la cuisson, un cran par geste. Turbo est en haut du panneau de droite, loin de Démarrer.
+- **Page Réglages courte** : les commandes et les états seulement ; les explications sont dans une
+  page *Aide sur les fonctionnalités*, ouverte depuis le haut des Réglages.
 - **Synchros sans surveillance** : leur progression est retrouvée en revenant dans Réglages ; une
   synchro interrompue (coupure, mise à jour, plantage) reprend toute seule au démarrage, 3 fois de
   suite au plus pour chaque synchro ; au-delà, Réglages invite à la relancer à la main.

@@ -80,22 +80,23 @@ class ManualScreen(a: MainActivity, preset: app.toque.core.recipes.StepMachine? 
         dirRow = Ui.horizontal(c)
         accRow = Ui.horizontal(c)
         options.addView(dirRow)
-        options.addView(Ui.spacer(c, w = 18))
+        options.addView(Ui.spacer(c, w = 14))
         options.addView(accRow)
+        options.addView(Ui.spacer(c, w = 14))
         modeRow = Ui.horizontal(c)
-        options.addView(Ui.spacer(c, w = 18))
         options.addView(modeRow)
-        options.addView(Ui.spacer(c, weight = 1f), LinearLayout.LayoutParams(0, 1, 1f))
-        turbo = HoldButton(c, "Turbo", onDown = {
-            a.machine.turboDown(accessory) { v -> if (!v.ok) a.refusal(v) }
-        }, onUp = { a.machine.turboUp() })
-        options.addView(turbo, Ui.lp(Ui.WRAP, Ui.u(64)))
         left.addView(options, Ui.lp(Ui.MATCH, Ui.WRAP, t = 16))
         root.addView(left, LinearLayout.LayoutParams(0, Ui.MATCH, 1f).apply { rightMargin = Ui.u(20) })
 
         val right = Ui.vertical(c, Gravity.CENTER_HORIZONTAL)
         right.background = Ui.round(Ui.SURFACE, 26f)
         right.setPadding(Ui.u(18), Ui.u(14), Ui.u(18), Ui.u(18))
+        // Turbo en haut du panneau : à la suite des choix du bas il sortait de l'écran, et près de
+        // Démarrer on l'aurait touché par mégarde.
+        turbo = HoldButton(c, "Turbo", onDown = {
+            a.machine.turboDown(accessory) { v -> if (!v.ok) a.refusal(v) }
+        }, onUp = { a.machine.turboUp() })
+        right.addView(turbo, Ui.lp(Ui.MATCH, Ui.u(60), b = 6))
         ring = TempRing(c)
         right.addView(ring, LinearLayout.LayoutParams(Ui.MATCH, 0, 1f))
         weight = Ui.text(c, "", 18f, Ui.TEXT2)
