@@ -253,8 +253,8 @@ tourne aussi sur un vrai robot (SKMC 1200). Le 20 novembre 2026, la version 0.7.
 sur ce robot : root conservé après un démarrage à froid (Magisk avait effacé l'autorisation, le
 script de démarrage l'a rétablie), horloge restaurée puis réglée par le réseau, liste des recettes
 prête en moins de 2 s, capteur du bol mesuré dans ses trois positions, cadre photo affichant un
-album partagé. Pas vérifié sur un robot : ce que fait le cadre photo d'un album qui contient une
-vidéo.
+album partagé (une vidéo de l'album est bien écartée), photo suivante et précédente au bouton
+rotatif, et les écrans montrés plus haut.
 
 ## Ajouter une langue
 
