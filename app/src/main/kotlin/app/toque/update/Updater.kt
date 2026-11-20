@@ -176,7 +176,9 @@ class Updater(private val context: Context) {
     private fun network(e: IOException): Failure {
         log.write("maj", "réseau : $e")
         return when (e) {
-            is SSLException -> Failure(tr("Connexion sécurisée à GitHub impossible. Vérifiez la date et l'heure du robot."))
+            is SSLException ->
+                if (app.toque.TimeSync.trusted) Failure(tr("Connexion sécurisée à GitHub impossible (certificat refusé)."))
+                else Failure(tr("L'heure du robot n'est pas encore réglée : connexion sécurisée à GitHub impossible. Vérifiez le Wi-Fi, puis Réglages › Date et heure › Mettre à l'heure."))
             else -> Failure(tr("Pas de connexion à GitHub. Vérifiez le Wi-Fi du robot."))
         }
     }
