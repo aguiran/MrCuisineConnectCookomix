@@ -60,6 +60,13 @@ data class Snapshot(
     val busy: Boolean get() = running || state == JobState.PAUSED || turboActive
     val hot: Boolean get() = hasSample && actualTempC >= Limits.HOT_C
 
+    /**
+     * Bol retiré, et pas seulement couvercle ouvert : la base signale « couvercle ouvert » dans les
+     * deux cas. Sans bol, sa sonde de température n'est plus vue (non détectée, 0 °C). Les deux
+     * indices sont exigés : si l'un manque, l'affichage reste « couvercle ouvert ».
+     */
+    val bowlRemoved: Boolean get() = hasSample && lidOpen && !bowlDetected && actualTempC == 0
+
     fun toMap(): Map<String, Any> = linkedMapOf(
         "link" to link.name, "transportName" to transportName, "transportUp" to transportUp,
         "faultCode" to faultCode, "faultMessage" to faultMessage, "hasSample" to hasSample,

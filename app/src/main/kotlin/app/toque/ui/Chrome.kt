@@ -99,6 +99,7 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
 
     fun update(s: Snapshot) {
         lid.visibility = if (s.hasSample && s.lidOpen) View.VISIBLE else View.GONE
+        Ui.chipText(lid).text = if (s.bowlRemoved) tr("Bol retiré") else tr("Couvercle ouvert")
         if (s.hasSample) {
             temp.visibility = View.VISIBLE
             Ui.chipText(temp).text = "${s.actualTempC} °C"
@@ -239,7 +240,7 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
             JobState.RUNNING -> if (s.waitingStop) tr("Changement de sens…") else if (s.phaseCount > 1) tr("En cours · phase %d/%d", s.phaseIndex + 1, s.phaseCount) else tr("En cours")
             JobState.STOPPING -> tr("Arrêt du moteur…")
             JobState.PAUSED -> when (s.pauseReason) {
-                "LID" -> tr("Pause : couvercle ouvert")
+                "LID" -> if (s.bowlRemoved) tr("Pause : bol retiré") else tr("Pause : couvercle ouvert")
                 "SAFETY" -> tr("Interrompu par sécurité")
                 else -> tr("En pause")
             }
