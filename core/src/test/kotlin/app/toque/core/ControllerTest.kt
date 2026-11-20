@@ -353,4 +353,15 @@ class ControllerTest {
         assertEquals(0, b.c.tick()[4].toInt())
         assertEquals(Mcc.TX_SIZE, frame.size)
     }
+
+    @Test fun bowlRemovedIsToldApartFromLidOpen() {
+        val open = app.toque.core.machine.Snapshot(hasSample = true, lidOpen = true, bowlDetected = true, actualTempC = 22)
+        assertFalse(open.bowlRemoved)
+        assertTrue(open.copy(bowlDetected = false, actualTempC = 0).bowlRemoved)
+        // Un seul indice ne suffit pas (détection du bol douteuse, ou bol de glace à 0 °C).
+        assertFalse(open.copy(bowlDetected = false).bowlRemoved)
+        assertFalse(open.copy(actualTempC = 0).bowlRemoved)
+        assertFalse(open.copy(lidOpen = false, bowlDetected = false, actualTempC = 0).bowlRemoved)
+        assertFalse(open.copy(hasSample = false, bowlDetected = false, actualTempC = 0).bowlRemoved)
+    }
 }
